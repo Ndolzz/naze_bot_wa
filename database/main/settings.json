@@ -1,0 +1,57 @@
+{
+  "selfMode": false,
+  "ownerNumbers": [],
+  "ownerType": 2,
+  "welcomeType": 1,
+  "botAfk": {
+    "active": false
+  },
+  "onlyGc": false,
+  "onlyPc": false,
+  "giveaways": {},
+  "botMode": "public",
+  "premiumUsers": [],
+  "similarity": true,
+  "botRules": "1. Gunakan bot dengan bijak.\\n2. Dilarang spam perintah.\\n3. Dilarang menyalahgunakan bot untuk hal yang melanggar hukum.",
+  "goodbyeType": 1,
+  "onlyAdmin": false,
+  "selfAdmin": false,
+  "publicAdmin": false,
+  "_lastEnergiDefault": 99999,
+  "_lastEnergiPremium": 99999999,
+  "lastLimitReset": "2026-06-15T17:00:00.029Z",
+  "onlyThisGroup": null,
+  "autoJpm": {
+    "enabled": false,
+    "intervalMs": 900000,
+    "message": {},
+    "lastRun": 1774157878673,
+    "nextRun": 1774158778673
+  },
+  "jedaJpm": 10000,
+  "globalCustomReplies": [],
+  "autoJoinGc": false,
+  "errorLog": [],
+  "jpmBlacklist": [],
+  "bannedUsers": [],
+  "notifMakan": {},
+  "autoReadSW": {
+    "enabled": true
+  },
+  "autoReactSW": {
+    "enabled": true,
+    "emoji": ""
+  },
+  "customPaymentText": "",
+  "bcgcEnabled": false,
+  "scheduledMessages": [],
+  "pushAutoVcf": false,
+  "selfGroups": [],
+  "ownerNames": {},
+  "publicGroups": [],
+  "autoRead": false,
+  "contacts": {},
+  "notiflimit": false,
+  "pgTopups": {},
+  "pgPayments": {}
+}
