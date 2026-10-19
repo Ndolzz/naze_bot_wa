@@ -509,6 +509,17 @@ async function messageHandler(msg, sock, options = {}) {
       } catch (e) { }
     }
 
+    // Hook sesi Preset Instan: pesan media dan kata kunci sesi preset
+    // dikonsumsi sebelum pemrosesan perintah normal (pola giveaway di atas).
+    if (global.presetSessions?.size > 0) {
+      try {
+        const { handlePresetMessage } =
+          await import("./lib/naze-preset-session.js");
+        const presetHandled = await handlePresetMessage(m, sock);
+        if (presetHandled) return;
+      } catch (e) { }
+    }
+
     if (m.message?.stickerPackMessage && sock.saveStickerPack) {
       try {
         const packMsg = m.message.stickerPackMessage;
@@ -1861,3 +1872,4 @@ export {
   isSpamming,
   handleAntiRemoveFromUpsert,
 };
+
