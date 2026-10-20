@@ -56,7 +56,10 @@ function replySafe(m, text) {
 }
 
 async function runDispatcher(m, sock) {
-  if (m.isBot || m.isNewsletter) return;
+  if (m.isNewsletter) return;
+  // Pesan dari akun bot sendiri dilewati, kecuali saat mode self aktif
+  // karena pengguna mengoperasikan bot dari akun yang sama.
+  if (m.isBot && config.mode !== "self") return;
 
   if (m.isCommand && m.isBanned) {
     await replySafe(m, config.messages?.banned || "Akses diblokir.");
@@ -188,3 +191,4 @@ export {
   groupSettingsHandler,
   handleAntiRemoveFromUpsert,
 };
+

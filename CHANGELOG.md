@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.5.0
+
+Sistem pengelolaan file: TXT Generator, PDF Creator, dan ZIP Archive.
+
+- Perintah baru: `.totxt`, `.topdf`, `.tozip`, `.statusfile`, `.batal`, `.menu`, `.filehelp`.
+- Sesi pengumpulan berkas terisolasi per pengirim dan per percakapan, dengan batas jumlah, ukuran per berkas, total ukuran, dan masa berlaku (atur di `config.files`).
+- PDF disusun oleh modul internal `src/lib/naze-pdf-builder.js` tanpa dependensi baru; foto non-JPEG atau progresif disandikan ulang via sharp; arsip ZIP memakai adm-zip yang sudah tersedia.
+- Penanganan pesan diaktifkan kembali di `src/handler.js` (dispatcher perintah berbasis plugin) karena sejak 3.4.0 cabang utama tidak lagi memproses perintah apa pun.
+- Pesan dari akun bot sendiri diizinkan masuk dispatcher saat `mode: "self"`.
+- Pengujian: `npm test` menjalankan `tests/file-management.test.js`.
+
 ## 3.4.0
 
 Rilis pembersihan dan penataan ulang. Tidak ada fitur baru.
