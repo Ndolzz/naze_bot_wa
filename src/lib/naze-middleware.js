@@ -66,7 +66,8 @@ function checkPermission(m, pluginConfig) {
     pluginConfig.isPremium &&
     !m.isPremium &&
     !m.isOwner &&
-    !m.isPartner &&
+    !m
+.isPartner &&
     !hasAccess
   ) {
     return {
@@ -121,14 +122,6 @@ function checkPermission(m, pluginConfig) {
           };
         }
       }
-      if (pluginConfig.category === "rpg" && group.rpg === false) {
-        if (!m.isAdmin && !m.isOwner && !hasAccess) {
-          return {
-            allowed: false,
-            reason: " Fitur RPG sedang dinonaktifkan di grup ini oleh Admin!",
-          };
-        }
-      }
     }
   }
 
@@ -147,7 +140,8 @@ function checkMode(m, getActiveJadibots) {
   const botAfk = db.setting("botAfk");
 
   if (botAfk && botAfk.active) {
-    if (m.fromMe || m.isOwner) {
+    if (m.fromMe || m.isO
+wner) {
       return { allowed: true };
     }
     const duration = formatAfkDuration(Date.now() - botAfk.since);
@@ -203,7 +197,8 @@ function checkMode(m, getActiveJadibots) {
     if (m.isOwner) return { allowed: true };
 
     const activeJadibots = getActiveJadibots();
-    if (activeJadibots.length > 0) {
+    if (activeJadibots.l
+ength > 0) {
       let jadibotList = "";
       activeJadibots.forEach((jb, i) => {
         jadibotList += `┃ ${i + 1}. @${jb.id}\n`;

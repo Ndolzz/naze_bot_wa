@@ -9,7 +9,7 @@ import { getCasesByCategory } from "../../case/naze.js";
 export const SECTIONS = [
   { key: "main", label: "Main", desc: "Profil, bantuan, dan informasi bot" },
   { key: "tools", label: "Tools", desc: "Downloader, media, dokumen, konverter, dan utilitas" },
-  { key: "games", label: "Games", desc: "Permainan, RPG, clan, dan peringkat" },
+  { key: "games", label: "Games", desc: "Permainan, clan, dan peringkat" },
   { key: "groups", label: "Groups", desc: "Moderasi, proteksi, dan pengaturan grup" },
   { key: "system", label: "System", desc: "Status, statistik, dan informasi" },
   { key: "owner", label: "Owner", desc: "Panel pengelolaan bot (khusus owner)", ownerOnly: true },
@@ -39,11 +39,11 @@ const BY_CATEGORY = {
   fun: ["games", "Fun"],
   anime: ["games", "Fun"],
   game: ["games", "Games"],
-  rpg: ["games", "RPG"],
   clan: ["games", "Clan"],
   group: ["groups", "Management"],
   info: ["system", "Information"],
-  cek: ["system", "Status"],
+  cek
+: ["system", "Status"],
   owner: ["owner", "System Management"],
 };
 
@@ -77,10 +77,11 @@ place("groups", "Protection", `antibot botdetect anticulik anticustom antidocume
   antimedia antiphising antiremove antispam antisticker antiswgc antitagsw addantilink delantilink listantilink`);
 place("groups", "Automation", `absen mulaiabsen cekabsen hapusabsen autodl autodownload autoforward automedia autoreply
   autosticker autosambut notifclosegroup notifdemote notifgantitag notifopengroup notifpromote notifmakan notiftidur
-  poll afk addcmdsticker delstickercmd game rpg jadwalgroup`);
+  poll afk addcmdsticker delstickercmd game jadwalgroup`);
 
 // System
-place("system", "Status", "ping system stats cekonline cekowner cekpartner cekprem");
+place("system", "Status", "ping system stats cekonline cekowner cekpartner cekprem"
+);
 
 // Owner
 place("owner", "Bot Management", `public self restart stop autobio autoread autoreadsw autotyping autoreactsw autojoingc
@@ -107,7 +108,8 @@ function locate(name, category) {
 /* Pengumpulan data                                                    */
 /* ------------------------------------------------------------------ */
 function shorten(text, n = 70) {
-  const t = String(text || "")
+  c
+onst t = String(text || "")
     .replace(/[\u2013\u2014]/g, "-")
     .replace(/\s+/g, " ")
     .trim();
@@ -161,7 +163,8 @@ export function buildStructure({ isOwner = false } = {}) {
   const out = [];
   for (const s of SECTIONS) {
     if (s.ownerOnly && !isOwner) continue;
-    const subs = [...tree.get(s.key).entries()]
+    const subs = [...
+tree.get(s.key).entries()]
       .map(([label, items]) => ({
         label,
         items: items.sort((a, b) => a.name.localeCompare(b.name)),
@@ -216,6 +219,7 @@ export function buildOverview({ prefix, botName, version, mode, uptime, develope
   }
   l.push("");
   l.push(`Detail submenu: ${prefix}menu <menu> <submenu>`);
+
   l.push(`Contoh: ${prefix}menu tools downloader`);
   l.push(`Semua perintah: ${prefix}allmenu`);
   return l.join("\n");
@@ -275,6 +279,7 @@ export function buildAllChunks(structure, prefix, limit = 3500) {
       }
     } else cur += b;
   }
-  if (cur.trim()) chunks.push(cur.trimEnd());
+  if (cur.trim()) c
+hunks.push(cur.trimEnd());
   return chunks;
 }
