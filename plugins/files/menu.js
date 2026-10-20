@@ -1,4 +1,5 @@
-import { menuText } from "../../src/lib/naze-file-utils.js";
+import { menuText, BOT_TITLE } from "../../src/lib/naze-file-utils.js";
+import { stickerStudioMenuText } from "../../src/lib/naze-sticker-utils.js";
 
 export const config = {
   name: "menu",
@@ -11,5 +12,12 @@ export const config = {
 };
 
 export async function handler(m) {
-  await m.reply(menuText());
+  const menu = [
+    BOT_TITLE,
+    "",
+    stickerStudioMenuText(),
+    "",
+    menuText(false),
+  ].join("\n");
+  await m.reply(menu);
 }
