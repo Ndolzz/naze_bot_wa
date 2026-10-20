@@ -1,6 +1,7 @@
 import fs from "fs";
 import config from "../../config.js";
 import { formatUptime, getTimeGreeting } from "../../src/lib/naze-formatter.js";
+import { setPlainMenu } from "../../src/lib/naze-menu-typography.js";
 import {
   buildStructure,
   findSection,
@@ -9,6 +10,8 @@ import {
   buildSection,
   buildSub,
 } from "../../src/lib/naze-menu-util.js";
+
+setPlainMenu(config.features?.plainMenu === true);
 
 const pluginConfig = {
   name: "menu",

@@ -1,5 +1,8 @@
 import config from "../../config.js";
+import { setPlainMenu } from "../../src/lib/naze-menu-typography.js";
 import { buildStructure, buildAllChunks } from "../../src/lib/naze-menu-util.js";
+
+setPlainMenu(config.features?.plainMenu === true);
 
 const pluginConfig = {
   name: "allmenu",

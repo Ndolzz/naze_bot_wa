@@ -1,5 +1,8 @@
 import config from "../../config.js";
+import { setPlainMenu } from "../../src/lib/naze-menu-typography.js";
 import { buildStructure, findSection, findSub, buildSection, buildSub } from "../../src/lib/naze-menu-util.js";
+
+setPlainMenu(config.features?.plainMenu === true);
 
 const pluginConfig = {
   name: "ownermenu",
@@ -25,12 +28,13 @@ async function handler(m) {
   if (q) {
     const sub = findSub(section, q);
     if (!sub) return m.reply(`Submenu "${q}" tidak ditemukan.\nKetik ${prefix}ownermenu untuk melihat daftar.`);
-    return m.reply(buildSub(section, sub, prefix).replace(/\*OWNER\*/, "*NAZE OWNER PANEL*"));
+    return m.reply(buildSub(section, sub, prefix, { title: "NAZE OWNER PANEL" }));
   }
   return m.reply(
-    buildSection(section, prefix)
-      .replace(/\*OWNER\*/, "*NAZE OWNER PANEL*")
-      .replace(`Detail: ${prefix}menu owner <submenu>`, `Detail: ${prefix}ownermenu <submenu>`),
+    buildSection(section, prefix, {
+      title: "NAZE OWNER PANEL",
+      detail: `Ketik ${prefix}ownermenu <submenu> untuk membuka submenu.`,
+    }),
   );
 }
 

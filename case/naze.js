@@ -6,35 +6,16 @@ import {
   getCategories,
   pluginStore,
 } from "../src/lib/naze-plugins.js";
+import {
+  setPlainMenu, stylize, stylizeHeader, menuBrand, separator, menuDot,
+} from "../src/lib/naze-menu-typography.js";
 import config from "../config.js";
 
-function toSmallCaps(text) {
-  return String(text).toUpperCase();
-}
+setPlainMenu(config.features?.plainMenu === true);
 
 function formatNumber(num) {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
-
-const CATEGORY_EMOJIS = {
-  owner: "",
-  main: "",
-  utility: "",
-  fun: "",
-  group: "",
-  download: "",
-  search: "",
-  tools: "",
-  sticker: "",
-  game: "",
-  media: "",
-  info: "",
-  user: "",
-  canvas: "",
-  premium: "",
-  convert: "",
-  economy: "",
-};
 
 async function handleCommand(m, sock) {
   try {
@@ -117,32 +98,25 @@ async function handleCommand(m, sock) {
             totalCases += casesByCategory[cat].length;
           }
 
-          let text = `╔══════════════════╗\n`;
-          text += ` *${toSmallCaps("CASE LIST")}*\n`;
-          text += `╚══════════════════╝\n\n`;
-          text += `╭┈┈「 *Info* 」\n`;
-          text += `┃ ◦ Total: *${totalCases}* cases\n`;
-          text += `┃ ◦ Kategori: *${Object.keys(casesByCategory).length}*\n`;
-          text += `╰┈┈\n\n`;
+          const prefix = m.prefix || ".";
+
+          let text = `${menuBrand()} ${stylize("NAZE CASE LIST", "fullwidth")}\n`;
+          text += `${separator()}\n`;
+          text += `Total: ${totalCases} case${menuDot()}Kategori: ${Object.keys(casesByCategory).length}\n\n`;
 
           for (const category in casesByCategory) {
             const commands = casesByCategory[category];
-            const emoji = CATEGORY_EMOJIS[category] || "";
-            const categoryName = toSmallCaps(category);
-
-            text += `╭┈┈「 ${emoji} *${categoryName}* 」\n`;
+            text += `${stylizeHeader(category, "sansBold")}\n`;
             commands.forEach((cmd, i) => {
-              const prefix = m.prefix || ".";
               const aliases = caseAliases[cmd]
                 ? ` (${caseAliases[cmd].slice(0, 2).join(", ")})`
                 : "";
-              text += `┃ ${i + 1}. ${prefix}${cmd}${aliases}\n`;
+              text += `${i + 1}. ${prefix}${cmd}${aliases}\n`;
             });
-            text += `╰┈┈\n\n`;
+            text += `\n`;
           }
 
-          text += `*━━━━━━━━━━━━━━━*\n`;
-          text += ` *Tip:* Gunakan \`.listallplugin\` untuk melihat plugin`;
+          text += `Tip: Ketik ${prefix}listallplugin untuk melihat daftar plugin.`;
 
           await sock.sendMessage(
             m.chat,
@@ -198,39 +172,32 @@ async function handleCommand(m, sock) {
             return { handled: true };
           }
 
-          let text = `╔══════════════════╗\n`;
-          text += ` *${toSmallCaps("PLUGIN LIST")}*\n`;
-          text += `╚══════════════════╝\n\n`;
-          text += `╭┈┈「 *Info* 」\n`;
-          text += `┃ ◦ Total: *${totalPlugins}* plugins\n`;
-          text += `┃ ◦ Kategori: *${categories.length}*\n`;
-          text += `╰┈┈\n\n`;
+          const prefix = m.prefix || ".";
+
+          let text = `${menuBrand()} ${stylize("NAZE PLUGIN LIST", "fullwidth")}\n`;
+          text += `${separator()}\n`;
+          text += `Total: ${totalPlugins} plugin${menuDot()}Kategori: ${categories.length}\n\n`;
 
           for (const category of categories.sort()) {
             const commands = commandsByCategory[category] || [];
             if (commands.length === 0) continue;
 
-            const emoji = CATEGORY_EMOJIS[category] || "";
-            const categoryName = toSmallCaps(category);
-
-            text += `╭┈┈「 ${emoji} *${categoryName}* 」\n`;
+            text += `${stylizeHeader(category, "sansBold")}\n`;
 
             commands.sort().forEach((cmd, i) => {
               const plugin = pluginStore.commands.get(cmd);
               if (plugin && plugin.config) {
-                const prefix = m.prefix || ".";
                 const aliases = plugin.config.alias
                   ? ` (${plugin.config.alias.slice(0, 2).join(", ")})`
                   : "";
-                text += `┃ ${i + 1}. ${prefix}${cmd}${aliases}\n`;
+                text += `${i + 1}. ${prefix}${cmd}${aliases}\n`;
               }
             });
 
-            text += `╰┈┈\n\n`;
+            text += `\n`;
           }
 
-          text += `*━━━━━━━━━━━━━━━*\n`;
-          text += ` *Tip:* Gunakan \`.listallcase\` untuk melihat case`;
+          text += `Tip: Ketik ${prefix}listallcase untuk melihat daftar case.`;
 
           await sock.sendMessage(
             m.chat,

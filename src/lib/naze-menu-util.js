@@ -1,7 +1,13 @@
 // Pembuat menu NAZE: struktur Main / Tools / Games / Groups / System / Owner.
 // Semua isi menu diambil dari plugin yang benar-benar terdaftar (tidak ada command palsu).
+// Tipografi judul dan header diatur oleh naze-menu-typography.js; nama perintah
+// selalu tetap ASCII agar mudah dibaca, disalin, dan diketik.
 import { getPluginsByCategory, getCategories } from "./naze-plugins.js";
 import { getCasesByCategory } from "../../case/naze.js";
+import {
+  stylize, stylizeHeader, menuTitle, menuBrand, separator, menuDot,
+  SECTION_STYLES, SUB_STYLES,
+} from "./naze-menu-typography.js";
 
 /* ------------------------------------------------------------------ */
 /* Struktur                                                            */
@@ -103,6 +109,25 @@ function locate(name, category) {
   return BY_NAME.get(name) || BY_CATEGORY[category] || ["tools", "Utilities"];
 }
 
+// Urutan submenu deterministik untuk seluruh section; label tak terdaftar
+// ditempatkan setelah label yang dikenal, diurutkan alfabetis.
+export const SUB_ORDER = [
+  "Help", "About", "Profile",
+  "Downloader", "Documents", "Media", "Stickers", "Text Effects", "Converter",
+  "Search", "Account Lookup", "Utilities",
+  "Fun", "Games", "Clan", "Rank", "RPG",
+  "Moderation", "Management", "Protection", "Automation",
+  "Information", "Status",
+  "Bot Management", "User Management", "Group Management", "Plugin Management", "System Management",
+];
+
+const sectionStyle = (key) => SECTION_STYLES[key] || "sansBold";
+const subStyle = (label) => SUB_STYLES[label] || "sansBold";
+const subRank = (label) => {
+  const i = SUB_ORDER.indexOf(label);
+  return i === -1 ? SUB_ORDER.length : i;
+};
+
 /* ------------------------------------------------------------------ */
 /* Pengumpulan data                                                    */
 /* ------------------------------------------------------------------ */
@@ -166,6 +191,7 @@ export function buildStructure({ isOwner = false } = {}) {
         label,
         items: items.sort((a, b) => a.name.localeCompare(b.name)),
       }))
+      .sort((a, b) => subRank(a.label) - subRank(b.label) || a.label.localeCompare(b.label))
       .filter((x) => x.items.length);
     if (subs.length) out.push({ ...s, subs });
   }
@@ -195,48 +221,58 @@ export function findSub(section, query) {
 /* ------------------------------------------------------------------ */
 /* Tampilan teks                                                       */
 /* ------------------------------------------------------------------ */
-const RULE = "--------------------------------";
 
+// Menu utama: daftar kategori bernomor dengan petunjuk submenu.
 export function buildOverview({ prefix, botName, version, mode, uptime, developer, pushName, role, greeting, structure }) {
+  const dot = ` ${menuDot()} `;
   const l = [];
-  l.push(`*${botName} BOT*`);
-  l.push(RULE);
-  l.push(`${greeting}, ${pushName || "pengguna"}.`);
+  l.push(`${menuBrand()} ${menuTitle(botName)}`);
+  l.push(separator());
+  l.push(`${greeting || "Halo"}, ${pushName || "pengguna"}.`);
   l.push("");
-  l.push(`Versi: ${version}`);
-  l.push(`Developer: ${developer}`);
-  l.push("Platform: WhatsApp");
-  l.push(`Mode: ${mode}`);
-  l.push(`Aktif: ${uptime}`);
-  l.push(`Status: ${role}`);
+  l.push(`Versi ${version}${dot}Mode ${mode}${dot}Aktif ${uptime}`);
+  if (developer) l.push(`Developer ${developer}${dot}Status ${role}`);
+  else l.push(`Status ${role}`);
   l.push("");
-  l.push("*MENU*");
-  for (const s of structure.filter((x) => !x.ownerOnly)) {
-    l.push(`${prefix}menu ${s.key} : ${s.label} (${countOf(s)})`);
-  }
+  l.push(stylizeHeader("Category Menu", "sansBold"));
   l.push("");
-  l.push(`Detail submenu: ${prefix}menu <menu> <submenu>`);
-  l.push(`Contoh: ${prefix}menu tools downloader`);
+  const visible = structure.filter((x) => !x.ownerOnly);
+  visible.forEach((s, idx) => {
+    l.push(`${idx + 1}. ${stylizeHeader(`${s.label} Menu`, sectionStyle(s.key))} (${countOf(s)})`);
+    l.push(`   ${s.subs.map((x) => x.label).join(", ")}`);
+  });
+  l.push("");
+  l.push(`Detail: ${prefix}menu <kategori>`);
+  l.push(`Contoh: ${prefix}menu games fun`);
   l.push(`Semua perintah: ${prefix}allmenu`);
   return l.join("\n");
 }
 
-// Daftar submenu dengan nama command ringkas
-export function buildSection(section, prefix) {
-  const l = [`*${section.label.toUpperCase()}*`, RULE, section.desc, ""];
-  for (const sub of section.subs) {
-    l.push(`*${sub.label}* (${sub.items.length})`);
+// Daftar submenu satu section; opsi title mengganti judul (mis. branding
+// khusus), opsi detail mengganti baris petunjuk di bagian bawah.
+export function buildSection(section, prefix, options = {}) {
+  const l = [];
+  l.push(`${menuBrand()} ${stylizeHeader(options.title || `${section.label} Menu`, sectionStyle(section.key))}`);
+  l.push(separator());
+  if (section.desc) l.push(section.desc);
+  l.push("");
+  section.subs.forEach((sub, idx) => {
+    l.push(`${idx + 1}. ${stylizeHeader(sub.label, subStyle(sub.label))} (${sub.items.length})`);
     l.push(sub.items.map((i) => `${prefix}${i.name}`).join(" "));
     l.push("");
-  }
-  l.push(`Detail: ${prefix}menu ${section.key} <submenu>`);
+  });
+  l.push(options.detail || `Ketik ${prefix}menu ${section.key} <submenu> untuk detail.`);
   l.push(`Kembali: ${prefix}menu`);
   return l.join("\n");
 }
 
-// Satu submenu lengkap dengan deskripsi
-export function buildSub(section, sub, prefix) {
-  const l = [`*${section.label.toUpperCase()}*`, `*${sub.label}* (${sub.items.length})`, RULE, ""];
+// Satu submenu lengkap dengan penomoran perintah dimulai dari 1.
+export function buildSub(section, sub, prefix, options = {}) {
+  const l = [];
+  l.push(`${menuBrand()} ${stylizeHeader(options.title || `${section.label} Menu`, sectionStyle(section.key))}`);
+  l.push(`${stylizeHeader(sub.label, subStyle(sub.label))} (${sub.items.length})`);
+  l.push(separator());
+  l.push("");
   sub.items.forEach((i, idx) => {
     l.push(`${idx + 1}. ${prefix}${i.name}${i.flags}`);
     if (i.desc) l.push(`   ${i.desc}`);
@@ -246,35 +282,39 @@ export function buildSub(section, sub, prefix) {
   return l.join("\n");
 }
 
-// Seluruh perintah, dipecah menjadi beberapa pesan
+// Seluruh perintah, dipecah menjadi beberapa pesan.
 export function buildAllChunks(structure, prefix, limit = 3500) {
-  const blocks = [];
-  for (const s of structure) {
-    let b = `*${s.label.toUpperCase()}*\n${RULE}\n`;
-    for (const sub of s.subs) {
-      b += `\n*${sub.label}* (${sub.items.length})\n${sub.items.map((i) => `${prefix}${i.name}`).join(" ")}\n`;
-    }
-    blocks.push(b);
-  }
+  const head = `${menuBrand()} ${stylize("NAZE SEMUA PERINTAH", "fullwidth")}\n\n`;
   const chunks = [];
-  let cur = "*NAZE BOT - SEMUA PERINTAH*\n";
-  for (const b of blocks) {
-    if (cur.length + b.length > limit && cur.trim()) {
-      chunks.push(cur.trimEnd());
-      cur = "";
+  let cur = head;
+  let curHasBody = false;
+  const flush = () => {
+    if (curHasBody) chunks.push(cur.trimEnd());
+    cur = "";
+    curHasBody = false;
+  };
+  const addSegment = (seg) => {
+    if (curHasBody && cur.length + seg.length > limit) flush();
+    cur += seg;
+    curHasBody = true;
+  };
+
+  for (const s of structure) {
+    const blockHead = `${menuBrand()} ${stylizeHeader(`${s.label} Menu`, sectionStyle(s.key))}\n${separator()}\n`;
+    const parts = [];
+    let full = blockHead;
+    for (const sub of s.subs) {
+      const p = `\n${stylizeHeader(sub.label, subStyle(sub.label))} (${sub.items.length})\n${sub.items.map((i) => `${prefix}${i.name}`).join(" ")}\n`;
+      parts.push(p);
+      full += p;
     }
-    if (b.length > limit) {
-      // bagi berdasarkan submenu jika satu section terlalu panjang
-      const parts = b.split(/\n(?=\*[^*\n]+\* \()/);
-      for (const part of parts) {
-        if (cur.length + part.length > limit && cur.trim()) {
-          chunks.push(cur.trimEnd());
-          cur = "";
-        }
-        cur += part + "\n";
-      }
-    } else cur += b;
+    if (full.length <= limit) {
+      addSegment(full);
+    } else {
+      addSegment(blockHead);
+      for (const p of parts) addSegment(p);
+    }
   }
-  if (cur.trim()) chunks.push(cur.trimEnd());
+  flush();
   return chunks;
 }
