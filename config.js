@@ -36,7 +36,7 @@ const config = {
 
   bot: {
     name: "NAZE", // Nama bot
-    version: "3.4.0", // Versi bot
+    version: "3.5.0", // Versi bot
     developer: "Nendi", // Nama developer
   },
 
@@ -62,6 +62,14 @@ const config = {
   // Prefix perintah
   command: {
     prefix: ".",
+  },
+
+  // Batas sistem pengelolaan file (.totxt, .topdf, .tozip)
+  files: {
+    maxSizePerFile: 52428800, // 50 MB per berkas
+    maxFiles: 20, // jumlah berkas maksimal per sesi
+    maxTotalSize: 209715200, // 200 MB total per sesi
+    sessionTimeoutMinutes: 15, // sesi berakhir setelah tidak aktif selama ini
   },
 
   vercel: {
@@ -101,11 +109,11 @@ const config = {
 
   groupProtection: {
     antilink: "*Antilink* - @%user% mengirim link.\nPesan dihapus.",
-    antilinkKick: "*Antilink* - @%user% dikeluarkan karena mengirim link.",
+    antilinkKick: "*Antilink* - @%user% dikeluarkan karena mengirim link grup WhatsApp.\nPesan dihapus.",
     antilinkGc: "*Antilink WA* - @%user% mengirim link grup WhatsApp.\nPesan dihapus.",
     antilinkGcKick: "*Antilink WA* - @%user% dikeluarkan karena mengirim link grup WhatsApp.",
     antilinkAll: "*Antilink* - @%user% mengirim link.\nPesan dihapus.",
-    antilinkAllKick: "*Antilink* - @%user% dikeluarkan karena mengirim link.",
+    antilinkAllKick: "*Antilink* - @%user% dikeluarkan karena mengirim link.\nPesan dihapus.",
     antitagsw: "*Anti Tag Status* - Tag status dari @%user% dihapus.",
     antiviewonce: "*View Once* - Dikirim oleh @%user%",
     antiremove: "*Anti Delete* - @%user% menghapus pesan:",
@@ -113,7 +121,8 @@ const config = {
     antihidetag: "*Anti Hidetag* - Hidetag dari @%user% dihapus.",
     antitoxicWarn:
       "@%user% menggunakan kata tidak pantas.\nPeringatan %warn% dari %max%, pelanggaran berikutnya dikenai sanksi %method%.",
-    antitoxicAction: "@%user% dikenai sanksi %method% karena kata tidak pantas. (%warn%/%max%)",
+    antitoxicAction:
+      "@%user% dikenai sanksi %method% karena kata tidak pantas. (%warn%/%max%)",
     antidocument: "*Anti Dokumen* - Dokumen dari @%user% dihapus.",
     antisticker: "*Anti Stiker* - Stiker dari @%user% dihapus.",
     antimedia: "*Anti Media* - Media dari @%user% dihapus.",
@@ -401,6 +410,12 @@ function isPartner(number) {
           (found.expiredAt ? new Date(found.expiredAt).getTime() : 0);
         if (expireTime && expireTime < now) {
           db.data.partner.splice(foundIndex, 1);
+          const jid = cleanNumber + "@s.whatsapp.net";
+          const user = db.getUser(jid);
+          if (user) {
+            user.isPartner = false;
+            db.setUser(jid, user);
+          }
           db.save();
           return false;
         }
