@@ -18,7 +18,6 @@ export const SECTIONS = [
 // Command yang tidak ditampilkan di menu (internal atau tidak untuk umum)
 const HIDDEN = new Set([
   "antitoxic", "addtoxic", "deltoxic", "listtoxic",
-  "android1-get", "apkmod-get", "filmget",
 ]);
 
 // Penempatan berdasarkan kategori plugin: [section, submenu]
@@ -34,7 +33,6 @@ const BY_CATEGORY = {
   convert: ["tools", "Converter"],
   tools: ["tools", "Utilities"],
   utility: ["tools", "Utilities"],
-  search: ["tools", "Search"],
   stalker: ["tools", "Account Lookup"],
   fun: ["games", "Fun"],
   anime: ["games", "Fun"],

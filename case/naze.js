@@ -23,7 +23,6 @@ const CATEGORY_EMOJIS = {
   fun: "",
   group: "",
   download: "",
-  search: "",
   tools: "",
   sticker: "",
   game: "",
