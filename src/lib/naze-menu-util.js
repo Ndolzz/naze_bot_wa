@@ -42,8 +42,7 @@ const BY_CATEGORY = {
   clan: ["games", "Clan"],
   group: ["groups", "Management"],
   info: ["system", "Information"],
-  cek
-: ["system", "Status"],
+  cek: ["system", "Status"],
   owner: ["owner", "System Management"],
 };
 
@@ -80,8 +79,7 @@ place("groups", "Automation", `absen mulaiabsen cekabsen hapusabsen autodl autod
   poll afk addcmdsticker delstickercmd game jadwalgroup`);
 
 // System
-place("system", "Status", "ping system stats cekonline cekowner cekpartner cekprem"
-);
+place("system", "Status", "ping system stats cekonline cekowner cekpartner cekprem");
 
 // Owner
 place("owner", "Bot Management", `public self restart stop autobio autoread autoreadsw autotyping autoreactsw autojoingc
@@ -108,8 +106,7 @@ function locate(name, category) {
 /* Pengumpulan data                                                    */
 /* ------------------------------------------------------------------ */
 function shorten(text, n = 70) {
-  c
-onst t = String(text || "")
+  const t = String(text || "")
     .replace(/[\u2013\u2014]/g, "-")
     .replace(/\s+/g, " ")
     .trim();
@@ -163,8 +160,7 @@ export function buildStructure({ isOwner = false } = {}) {
   const out = [];
   for (const s of SECTIONS) {
     if (s.ownerOnly && !isOwner) continue;
-    const subs = [...
-tree.get(s.key).entries()]
+    const subs = [...tree.get(s.key).entries()]
       .map(([label, items]) => ({
         label,
         items: items.sort((a, b) => a.name.localeCompare(b.name)),
@@ -219,7 +215,6 @@ export function buildOverview({ prefix, botName, version, mode, uptime, develope
   }
   l.push("");
   l.push(`Detail submenu: ${prefix}menu <menu> <submenu>`);
-
   l.push(`Contoh: ${prefix}menu tools downloader`);
   l.push(`Semua perintah: ${prefix}allmenu`);
   return l.join("\n");
@@ -279,7 +274,6 @@ export function buildAllChunks(structure, prefix, limit = 3500) {
       }
     } else cur += b;
   }
-  if (cur.trim()) c
-hunks.push(cur.trimEnd());
+  if (cur.trim()) chunks.push(cur.trimEnd());
   return chunks;
 }

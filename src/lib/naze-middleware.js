@@ -66,8 +66,7 @@ function checkPermission(m, pluginConfig) {
     pluginConfig.isPremium &&
     !m.isPremium &&
     !m.isOwner &&
-    !m
-.isPartner &&
+    !m.isPartner &&
     !hasAccess
   ) {
     return {
@@ -140,8 +139,7 @@ function checkMode(m, getActiveJadibots) {
   const botAfk = db.setting("botAfk");
 
   if (botAfk && botAfk.active) {
-    if (m.fromMe || m.isO
-wner) {
+    if (m.fromMe || m.isOwner) {
       return { allowed: true };
     }
     const duration = formatAfkDuration(Date.now() - botAfk.since);
@@ -197,8 +195,7 @@ wner) {
     if (m.isOwner) return { allowed: true };
 
     const activeJadibots = getActiveJadibots();
-    if (activeJadibots.l
-ength > 0) {
+    if (activeJadibots.length > 0) {
       let jadibotList = "";
       activeJadibots.forEach((jb, i) => {
         jadibotList += `┃ ${i + 1}. @${jb.id}\n`;

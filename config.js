@@ -61,8 +61,7 @@ const config = {
 
   // Prefix perintah
   command: {
-    p
-refix: ".",
+    prefix: ".",
   },
 
   vercel: {
@@ -117,8 +116,7 @@ refix: ".",
     antitoxicAction: "@%user% dikenai sanksi %method% karena kata tidak pantas. (%warn%/%max%)",
     antidocument: "*Anti Dokumen* - Dokumen dari @%user% dihapus.",
     antisticker: "*Anti Stiker* - Stiker dari @%user% dihapus.",
-    antimedia: "*Anti Media* - 
-Media dari @%user% dihapus.",
+    antimedia: "*Anti Media* - Media dari @%user% dihapus.",
     antibot: "*Anti Bot* - @%user% terdeteksi sebagai bot dan dikeluarkan.",
     notAdmin: "Bot bukan admin sehingga tidak dapat menghapus pesan.",
   },
@@ -175,8 +173,7 @@ Media dari @%user% dihapus.",
     banned:
       "*Akses diblokir.* Kamu tidak dapat menggunakan bot ini karena melanggar aturan.",
 
-    rejectCall: "Bot tidak meneri
-ma panggilan. Silakan kirim pesan teks.",
+    rejectCall: "Bot tidak menerima panggilan. Silakan kirim pesan teks.",
   },
 
   database: { path: "./database/main" },
@@ -241,8 +238,7 @@ function isOwner(number) {
     }
 
     if (db?.data && Array.isArray(db.data.owner)) {
-      const match = db.data.owner.some((own) => 
-{
+      const match = db.data.owner.some((own) => {
         const c = String(own).replace(/[^0-9]/g, "");
         return (
           c &&
@@ -320,8 +316,7 @@ function isPremium(number) {
         if (typeof found === "string") return true;
 
         const expireTime =
-          foun
-d.expired ||
+          found.expired ||
           (found.expiredAt ? new Date(found.expiredAt).getTime() : 0);
         if (expireTime && expireTime < now) {
           db.data.premium.splice(foundIndex, 1);
@@ -393,8 +388,7 @@ function isPartner(number) {
       const now = Date.now();
       const foundIndex = db.data.partner.findIndex((p) => {
         if (typeof p === "string") return p === cleanNumber;
-        if (p.id) return p.id === cleanNumber
-;
+        if (p.id) return p.id === cleanNumber;
         return false;
       });
 
@@ -470,8 +464,7 @@ function getOwnerName(number) {
   } catch { }
   if (config.owner?.number) {
     const isMainOwner = config.owner.number.some((own) => {
-      const c = own.replace(/[^0-9]/
-g, "");
+      const c = own.replace(/[^0-9]/g, "");
       return (
         c &&
         (cleanNumber === c ||
