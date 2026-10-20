@@ -216,9 +216,9 @@ test("seluruh templat pesan bebas emoji dan garis dekoratif", () => {
   }
 });
 
-test("menu memuat ketujuh perintah secara utuh", () => {
+test("menu memuat seluruh perintah secara utuh", () => {
   const menu = utils.menuText();
-  for (const perintah of ["totxt", "topdf", "tozip", "statusfile", "batal", "menu", "filehelp"]) {
+  for (const perintah of ["totxt", "topdf", "tozip", "toqr", "statusfile", "batal", "menu", "filehelp"]) {
     assert.ok(menu.includes('".' + perintah + '"'), "perintah ." + perintah + " tidak ada di menu");
   }
   assert.ok(menu.includes("FILE MANAGEMENT"));
@@ -232,7 +232,7 @@ test("panduan menjelaskan batas dan perintah", () => {
   assert.ok(panduan.includes("50 MB"));
   assert.ok(panduan.includes("200 MB"));
   assert.ok(panduan.includes("15 menit"));
-  for (const perintah of ["totxt", "topdf", "tozip", "statusfile", "batal", "menu"]) {
+  for (const perintah of ["totxt", "topdf", "tozip", "toqr", "statusfile", "batal", "menu"]) {
     assert.ok(panduan.includes('".' + perintah + '"'), "panduan tidak menyebut ." + perintah);
   }
 });
@@ -607,7 +607,7 @@ if (fileManager) {
   });
 
   test("plugin pengelolaan file terdaftar dengan nama yang unik", async () => {
-    const daftar = ["totxt", "topdf", "tozip", "statusfile", "batal", "menu", "filehelp"];
+    const daftar = ["totxt", "topdf", "tozip", "toqr", "statusfile", "batal", "menu", "filehelp"];
     const nama = [];
     for (const plugin of daftar) {
       const modul = await import("../plugins/files/" + plugin + ".js");
@@ -617,7 +617,7 @@ if (fileManager) {
       assert.equal(typeof modul.handler, "function");
       nama.push(modul.config.name);
     }
-    assert.equal(new Set(nama).size, 7, "nama perintah tidak unik");
+    assert.equal(new Set(nama).size, 8, "nama perintah tidak unik");
   });
 } else {
   test("integrasi naze-file-manager ditandai dilewati", () => {

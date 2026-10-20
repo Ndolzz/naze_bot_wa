@@ -36,7 +36,7 @@ const config = {
 
   bot: {
     name: "NAZE", // Nama bot
-    version: "3.5.0", // Versi bot
+    version: "3.6.0", // Versi bot
     developer: "Nendi", // Nama developer
   },
 
@@ -64,12 +64,13 @@ const config = {
     prefix: ".",
   },
 
-  // Batas sistem pengelolaan file (.totxt, .topdf, .tozip)
+  // Batas sistem pengelolaan file (.totxt, .topdf, .tozip, .toqr)
   files: {
     maxSizePerFile: 52428800, // 50 MB per berkas
     maxFiles: 20, // jumlah berkas maksimal per sesi
     maxTotalSize: 209715200, // 200 MB total per sesi
     sessionTimeoutMinutes: 15, // sesi berakhir setelah tidak aktif selama ini
+    qrMaxTextBytes: 1000, // panjang teks maksimal (UTF-8) untuk .toqr
   },
 
   vercel: {

@@ -33,6 +33,10 @@ import {
   processFailedMessage,
   totxtGuideMessage,
   totxtDoneMessage,
+  qrGuideMessage,
+  qrMediaUnsupportedMessage,
+  qrTooLongMessage,
+  qrDoneMessage,
   busyMessage,
 } from "./naze-file-utils.js";
 
@@ -324,6 +328,60 @@ async function createTxt(m, sock) {
   await m.replyDocument(buffer, "hasil.txt", "text/plain");
 }
 
+function describeQuotedMedia(quoted) {
+  if (quoted.isImage) return "foto";
+  if (quoted.isVideo) return "video";
+  if (quoted.isSticker) return "stiker";
+  if (quoted.isAudio) return "audio";
+  if (quoted.isDocument) return "dokumen";
+  return "berkas media";
+}
+
+async function createQr(m, sock) {
+  ensureInitialized();
+  const key = core.sessionKey(m.sender, m.chat);
+  const source = pickTotxtSource(m, lastTexts.get(key), Date.now());
+  if (!source) {
+    if (m.quoted?.isMedia) {
+      await m.reply(
+        qrMediaUnsupportedMessage(describeQuotedMedia(m.quoted), core.limits.qrMaxTextBytes)
+      );
+      return;
+    }
+    if (m.isMedia) {
+      await m.reply(
+        qrMediaUnsupportedMessage(describeIncomingName(m), core.limits.qrMaxTextBytes)
+      );
+      return;
+    }
+    await m.reply(qrGuideMessage(core.limits.qrMaxTextBytes));
+    return;
+  }
+
+  const byteLength = Buffer.byteLength(source, "utf8");
+  const maxBytes = core.limits.qrMaxTextBytes;
+  if (byteLength > maxBytes) {
+    await m.reply(qrTooLongMessage(byteLength, maxBytes));
+    return;
+  }
+
+  try {
+    const QRCode = (await import("qrcode")).default;
+    const imageBuffer = await QRCode.toBuffer(source, {
+      type: "png",
+      width: 720,
+      margin: 4,
+      errorCorrectionLevel: "M",
+      color: { dark: "#000000", light: "#ffffff" },
+    });
+    await m.reply(qrDoneMessage(source.length));
+    await m.replyImage(imageBuffer, "");
+  } catch (error) {
+    logger.error("files", "gagal membuat kode QR: " + error.message);
+    await m.reply(processFailedMessage("kode QR tidak dapat dibuat"));
+  }
+}
+
 function rememberTextMessage(m) {
   if (m.isCommand) return;
   if (m.type !== "conversation" && m.type !== "extendedTextMessage") return;
@@ -367,6 +425,7 @@ export {
   ingestMedia,
   finishWithName,
   createTxt,
+  createQr,
   rememberTextMessage,
   sendStatus,
   cancelSession,
