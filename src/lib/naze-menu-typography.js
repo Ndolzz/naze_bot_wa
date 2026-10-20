@@ -40,7 +40,6 @@ const SUB_STYLES = {
   Stickers: "sans",
   "Text Effects": "serifItalic",
   Converter: "sansBoldItalic",
-  Search: "sansBoldItalic",
   "Account Lookup": "mono",
   Utilities: "sansBold",
   Fun: "sansBold",
