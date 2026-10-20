@@ -11,7 +11,7 @@ import fs from "fs";
 import path from "path";
 import readline from "readline";
 import NodeCache from "node-cache";
-import config, { isOwner as isOwners, setBotNumber } from "../config.js";
+import config, { setBotNumber } from "../config.js";
 import * as colors from "./lib/naze-logger.js";
 import { extendSocket } from "./lib/naze-socket.js";
 import {
@@ -23,8 +23,6 @@ import {
   resolveFromSock,
   isLidConverted,
 } from "./lib/naze-lid.js";
-import { initAutoBackup } from "./lib/naze-auto-backup.js";
-import { prepareScraper } from "./scraper/tiktoktok.js"; 
 const groupCache = new NodeCache({ stdTTL: 5 * 60, useClones: false });
 const processedMessages = new NodeCache({ stdTTL: 30, useClones: false });
 const msgRetryCounterCache = new NodeCache({ stdTTL: 60, useClones: false });
@@ -426,31 +424,7 @@ async function startConnection(options = {}) {
 
       startWatchdog(startConnection, options);
 
-      try {
-        prepareScraper(sock);
-      } catch (e) { }
-      // ----------------------------------------------------
-
       colors.logger.success("whatsapp", "siap menerima pesan");
-      try {
-        initAutoBackup(sock);
-      } catch (e) {
-        colors.logger.debug("backup", "skipped: " + e.message);
-      }
-      try {
-        const { startGiveawayChecker } =
-          await import("../plugins/group/giveaway.js");
-        const db = (await import("./lib/naze-database.js")).getDatabase();
-        startGiveawayChecker(sock, db);
-      } catch (e) {
-        colors.logger.debug("giveaway", "skipped: " + e.message);
-      }
-      try {
-        const { startAutoBioChecker } = await import("./lib/naze-scheduler.js");
-        startAutoBioChecker(sock);
-      } catch (e) {
-        colors.logger.debug("autobio", "skipped: " + e.message);
-      }
     }
 
     options.onConnectionUpdate && (await options.onConnectionUpdate(u, sock));
@@ -508,102 +482,6 @@ async function startConnection(options = {}) {
         metadata = await sock.groupMetadata(event.id);
         groupCache.set(event.id, metadata);
       } catch { }
-    }
-
-    const botNumber =
-      sock.user?.id?.split(":")[0] || sock.user?.id?.split("@")[0];
-    const botLid = sock.user?.id;
-    if (event.action === "add") {
-      await sock.sendPresenceUpdate("available", event.id);
-      const addedParticipants = event.participants || [];
-      const isBotAdded = addedParticipants.some((p) => {
-        const rJid =
-          typeof p === "object" && p !== null ? p.phoneNumber || p.id : p;
-        if (typeof rJid !== "string") return false;
-
-        const pNum = rJid.split("@")[0].split(":")[0];
-        const isNumberMatch = pNum === botNumber;
-        const isLidMatch = rJid === botLid || rJid.includes(botNumber);
-        const isFullMatch =
-          sock.user?.id &&
-          (rJid.includes(sock.user.id.split(":")[0]) ||
-            rJid.includes(sock.user.id.split("@")[0]));
-
-        return isNumberMatch || isLidMatch || isFullMatch;
-      });
-      if (isBotAdded) {
-        try {
-          const { getDatabase } = await import("./lib/naze-database.js");
-          const db = getDatabase();
-
-          try {
-            const { handleAntiCulik } =
-              await import("../plugins/group/anticulik.js");
-            const culikHandled = await handleAntiCulik(event, sock, db);
-            if (culikHandled) return;
-          } catch { }
-
-          const sewaData = db?.db?.data?.sewa;
-
-          if (sewaData?.enabled) {
-            const groupSewa = sewaData.groups?.[event.id];
-            const isWhitelisted =
-              groupSewa &&
-              (groupSewa.isLifetime || groupSewa.expiredAt > Date.now());
-
-            if (!isWhitelisted) {
-              const ownerContact =
-                config.bot?.support || config.bot?.developer || "owner";
-              await sock.sendMessage(event.id, {
-                text:
-                  ` *Sewabot*\n\n` +
-                  `> Grup ini tidak terdaftar dalam sistem sewa.\n` +
-                  `> Bot akan meninggalkan grup ini.\n\n` +
-                  `_Hubungi ${ownerContact} untuk sewa bot._`,
-              });
-              await new Promise((r) => setTimeout(r, 2000));
-              await sock.groupLeave(event.id);
-              colors.logger.warn(
-                "sewa",
-                `auto-left non-whitelisted group: ${event.id}`,
-              );
-              return;
-            }
-          }
-
-          const inviter = event.author || "";
-          const inviterMention = inviter
-            ? `@${inviter.split("@")[0]}`
-            : "seseorang";
-          const prefix = config.command?.prefix || ".";
-
-          let groupName = "grup ini";
-          try {
-            const meta = await sock.groupMetadata(event.id);
-            groupName = meta.subject || "grup ini";
-          } catch { }
-
-          const welcomeText =
-            `*${config.bot?.name || "NAZE"} BOT*\n\n` +
-            `Terima kasih sudah mengundang bot ke *${groupName}*.\n` +
-            `Diundang oleh ${inviterMention}.\n\n` +
-            `Developer: ${config.bot?.developer || "-"}\n` +
-            `Prefix: ${prefix}\n\n` +
-            `Ketik ${prefix}menu untuk melihat daftar perintah.`;
-
-          await sock.sendMessage(event.id, {
-            text: welcomeText,
-            contextInfo: { mentionedJid: inviter ? [inviter] : [] },
-          });
-
-          colors.logger.success("grup", `bot bergabung: ${groupName}`);
-        } catch (e) {
-          colors.logger.error(
-            "BotJoin",
-            `Failed to process bot join: ${e.message}`,
-          );
-        }
-      }
     }
 
     if (options.onParticipantsUpdate) {
@@ -705,15 +583,6 @@ async function startConnection(options = {}) {
 
       if (msgType === "protocolMessage") {
         const protocolMessage = msg.message.protocolMessage;
-        if (protocolMessage?.type === 30 && protocolMessage?.memberLabel) {
-          try {
-            const { handleLabelChange } =
-              await import("../plugins/group/notifgantitag.js");
-            if (handleLabelChange) {
-              await handleLabelChange(msg, currentSock);
-            }
-          } catch (e) { }
-        }
 
         if (
           protocolMessage?.type === "MESSAGE_EDIT" ||
@@ -741,68 +610,6 @@ async function startConnection(options = {}) {
         }
 
         continue;
-      }
-
-      const allMsgKeys = Object.keys(msg.message || {});
-
-      const isStatusMention =
-        allMsgKeys.includes("groupStatusMessage") ||
-        allMsgKeys.includes("groupStatusMessageV2") ||
-        allMsgKeys.includes("groupStatusMentionMessage") ||
-        allMsgKeys.includes("groupMentionedMessage") ||
-        allMsgKeys.includes("statusMentionMessage") ||
-        msg.message?.viewOnceMessage?.message?.groupStatusMessage ||
-        msg.message?.viewOnceMessage?.message?.groupStatusMessageV2 ||
-        msg.message?.viewOnceMessageV2?.message?.groupStatusMessage ||
-        msg.message?.viewOnceMessageV2?.message?.groupStatusMessageV2 ||
-        msg.message?.viewOnceMessageV2Extension?.message?.groupStatusMessage ||
-        msg.message?.viewOnceMessageV2Extension?.message
-          ?.groupStatusMessageV2 ||
-        msg.message?.ephemeralMessage?.message?.groupStatusMessage ||
-        msg.message?.ephemeralMessage?.message?.groupStatusMessageV2 ||
-        msg.message?.viewOnceMessage?.message?.groupStatusMentionMessage ||
-        msg.message?.viewOnceMessageV2?.message?.groupStatusMentionMessage ||
-        msg.message?.viewOnceMessageV2Extension?.message
-          ?.groupStatusMentionMessage ||
-        msg.message?.ephemeralMessage?.message?.groupStatusMentionMessage ||
-        msg.message?.[msgType]?.message?.groupStatusMessage ||
-        msg.message?.[msgType]?.message?.groupStatusMessageV2 ||
-        msg.message?.[msgType]?.message?.groupStatusMentionMessage ||
-        msg.message?.[msgType]?.contextInfo?.groupMentions?.length > 0;
-
-      const hasGroupMentionInContext = (() => {
-        const content = msg.message?.[msgType];
-        if (content?.contextInfo?.groupMentions?.length > 0) return true;
-
-        const viewOnce =
-          msg.message?.viewOnceMessage?.message ||
-          msg.message?.viewOnceMessageV2?.message ||
-          msg.message?.viewOnceMessageV2Extension?.message;
-        if (viewOnce) {
-          const vType = Object.keys(viewOnce)[0];
-          if (viewOnce[vType]?.contextInfo?.groupMentions?.length > 0)
-            return true;
-        }
-        return false;
-      })();
-
-      if (isStatusMention || hasGroupMentionInContext) {
-        const groupJid = msg.key.remoteJid;
-
-        try {
-          const { getDatabase } = await import("./lib/naze-database.js");
-          const { handleAntiTagSW, handleAntiSwGc } =
-            await import("./lib/naze-group-protection.js");
-          const db = getDatabase();
-          if (groupJid?.endsWith("@g.us")) {
-            const antiTagHandled = await handleAntiTagSW(msg, currentSock, db);
-            if (!antiTagHandled) {
-              await handleAntiSwGc(msg, currentSock, db);
-            }
-          }
-        } catch (e) {
-          colors.logger.error("antitagsw", e.message);
-        }
       }
 
       const ignoredTypes = [
@@ -833,57 +640,6 @@ async function startConnection(options = {}) {
         continue;
       }
 
-      if (jid === "status@broadcast") {
-        try {
-          let participant = msg.key.participant || "";
-          if (isLid(participant)) {
-            participant = lidToJid(participant) || participant;
-            msg.key.participant = participant;
-          }
-
-          const { getDatabase } = await import("./lib/naze-database.js");
-          const db = getDatabase();
-          const autoReadSW = db.setting("autoReadSW") || {};
-          const autoReactSW = db.setting("autoReactSW") || {};
-          if (
-            autoReadSW.enabled &&
-            participant &&
-            !participant.endsWith("@lid")
-          ) {
-            await currentSock
-              .sendReceipt(
-                "status@broadcast",
-                participant,
-                [msg.key.id],
-                "read",
-              )
-              .catch(() => { });
-          }
-
-          if (
-            autoReactSW.enabled &&
-            participant &&
-            !participant.endsWith("@lid")
-          ) {
-            const emoji = autoReactSW.emoji || "";
-            await currentSock
-              .sendMessage(
-                "status@broadcast",
-                {
-                  react: { text: emoji, key: msg.key },
-                },
-                {
-                  statusJidList: [participant],
-                },
-              )
-              .catch(() => { });
-          }
-        } catch (e) {
-          colors.logger.debug("story", `auto story error: ${e.message}`);
-        }
-        continue;
-      }
-
       if (isLid(jid)) {
         const resolved = await resolveFromSock(jid, currentSock);
         if (resolved && !isLid(resolved) && !isLidConverted(resolved)) {
@@ -908,98 +664,6 @@ async function startConnection(options = {}) {
         try {
           await options.onRawMessage(msg, currentSock);
         } catch (error) { }
-      }
-
-      const messageBody = (() => {
-        const m = msg.message;
-        if (!m) return "";
-        const type = Object.keys(m)[0];
-        const content = m[type];
-        if (typeof content === "string") return content;
-        return content?.text || content?.caption || content?.conversation || "";
-      })();
-
-      const isGroup = msg.key.remoteJid?.endsWith("@g.us");
-      const senderJid = isGroup
-        ? msg.key.participantAlt || msg.key.participant
-        : msg.key.remoteJidAlt || msg.key.remoteJid || "";
-      const isOwner = isOwners(senderJid);
-      if (isOwner && messageBody.startsWith("=>")) {
-        console.log("Owner", "Executing code");
-        const code = messageBody.slice(2).trim();
-        if (code) {
-          try {
-            const { serialize } = await import("./lib/naze-serialize.js");
-            const m = await serialize(currentSock, msg, {});
-            const { getDatabase: _getDb } =
-              await import("./lib/naze-database.js");
-            const db = _getDb();
-            const sock = currentSock;
-            const { default: sharp } = await import("sharp");
-
-            let result;
-            if (code.startsWith("{")) {
-              result = await eval(`(async () => ${code})()`);
-            } else {
-              result = await eval(`(async () => { return ${code} })()`);
-            }
-
-            if (typeof result !== "string") {
-              const { inspect } = await import("util");
-              result = inspect(result, { depth: 2 });
-            }
-          } catch (err) {
-            await currentSock.sendMessage(
-              jid,
-              {
-                text: ` *Eval Error*\n\n\`\`\`\n${err.message}\n\`\`\``,
-              },
-              { quoted: msg },
-            );
-          }
-          continue;
-        }
-      }
-
-      if (isOwner && messageBody.startsWith("$")) {
-        const command = messageBody.slice(1).trim();
-        if (command) {
-          try {
-            const { exec } = await import("child_process");
-            const { promisify } = await import("util");
-            const execAsync = promisify(exec);
-
-            const isWindows = process.platform === "win32";
-            const shell = isWindows ? "powershell.exe" : "/bin/bash";
-
-            await currentSock.sendMessage(
-              jid,
-              {
-                text: ` *Executing...*\n\n\`$ ${command}\``,
-              },
-              { quoted: msg },
-            );
-
-            const { stdout, stderr } = await execAsync(command, {
-              shell,
-              timeout: 60000,
-              maxBuffer: 1024 * 1024,
-              encoding: "utf8",
-            });
-
-            const output = stdout || stderr || "No output";
-
-            await currentSock.sendMessage(jid, {
-              text: ` *Terminal*\n\n\`$ ${command}\`\n\n\`\`\`\n${output.slice(0, 3500)}\n\`\`\``,
-            });
-          } catch (err) {
-            const errorMsg = err.stderr || err.stdout || err.message;
-            await currentSock.sendMessage(jid, {
-              text: ` *Terminal Error*\n\n\`$ ${command}\`\n\n\`\`\`\n${errorMsg.slice(0, 3500)}\n\`\`\``,
-            });
-          }
-          continue;
-        }
       }
 
       if (options.onMessage) {
@@ -1037,83 +701,6 @@ async function startConnection(options = {}) {
       await options.onMessageUpdate(updates, sock);
     }
   });
-
-  {
-    const { getDatabase: _getDb } = await import("./lib/naze-database.js");
-    const _db = _getDb();
-    if (_db.setting("antiCall") ?? config.features?.antiCall) {
-      sock.ev.on("call", async (calls) => {
-        for (const call of calls) {
-          if (call.status === "offer") {
-            colors.logger.warn("Call", `Menolak panggilan dari ${call.from}`);
-            await sock.rejectCall(call.id, call.from);
-
-            await sock.sendMessage(call.from, {
-              text: config.messages?.rejectCall,
-            });
-
-            if (config.features?.blockIfCall) {
-              let targetJid = call.from;
-
-              if (targetJid.endsWith("@lid")) {
-                try {
-                  const pn =
-                    await sock.signalRepository?.lidMapping?.getPNForLID(
-                      targetJid,
-                    );
-                  if (pn) {
-                    targetJid = pn;
-                    colors.logger.info(
-                      "Call",
-                      `Berhasil resolve @lid ke PN: ${targetJid}`,
-                    );
-                  }
-                } catch (e) {
-                  colors.logger.warn(
-                    "Call",
-                    `Gagal resolve LID ke PN: ${e.message}`,
-                  );
-                }
-              }
-
-              if (!targetJid.endsWith("@lid")) {
-                try {
-                  const sanitizedJid = targetJid.replace(/:\d+@/, "@");
-                  await _db.setUser(sanitizedJid, { isBlocked: true });
-
-                  try {
-                    await sock.updateBlockStatus(
-                      sanitizedJid.split("@")[0],
-                      "block",
-                    );
-                    colors.logger.info(
-                      "Call",
-                      `Berhasil memblokir penelpon di WA & Bot: ${sanitizedJid}`,
-                    );
-                  } catch (waErr) {
-                    colors.logger.warn(
-                      "Call",
-                      `Diblokir di DB Bot, tapi gagal di WA Server (${sanitizedJid}): ${waErr.message}`,
-                    );
-                  }
-                } catch (e) {
-                  colors.logger.error(
-                    "Call",
-                    `Gagal memblokir di DB: ${e.message}`,
-                  );
-                }
-              } else {
-                colors.logger.warn(
-                  "Call",
-                  `Melewati blokir karena gagal mendapatkan nomor asli dari @lid: ${targetJid}`,
-                );
-              }
-            }
-          }
-        }
-      });
-    }
-  }
 
   process.nextTick(() => {
     try {
