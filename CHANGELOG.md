@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.9.0
+
+Pencarian YouTube: mencari video lewat yt-search lalu mengunduh hasilnya sebagai video atau MP3.
+
+- Perintah baru: `.ytsearch` (alias `.yts`).
+- `.ytsearch <kata kunci>` menampilkan daftar hasil bernomor (judul, kanal, durasi, jumlah tayangan, tautan); teks pesan yang dibalas juga dapat dipakai sebagai kata kunci.
+- `.ytsearch <nomor>` mengunduh video pada nomor tersebut; `.ytsearch <nomor> mp3` mengirim audionya sebagai MP3. Pipeline unduhan memakai Sosmed Downloader yang sama, dengan pemeriksaan durasi sebelum mengunduh.
+- Hasil pencarian terakhir disimpan per pengirim di memori proses dengan masa berlaku (bawaan 10 menit, atur di `config.ytsearch`).
+- Field hasil yt-search dibaca secara defensif sehingga perubahan kecil pada paket tidak langsung merusak fitur; tidak ada dependensi baru.
+- `naze-sosdown-manager.js` dirapikan: pipeline unduhan diekstrak menjadi `performSosmedDownload`/`performMp3Download` dan fungsi baru `downloadByUrl` untuk fitur yang sudah memiliki URL.
+- Menu `.menu` menampilkan bagian YOUTUBE SEARCH setelah SOSMED DOWNLOADER.
+- Pengujian: `npm test` menjalankan `tests/ytsearch.test.js` di samping suite lama.
+
 ## 3.8.0
 
 Sosmed Downloader: pengunduhan video/foto TikTok, Instagram, dan YouTube, serta konversi audio menjadi MP3.

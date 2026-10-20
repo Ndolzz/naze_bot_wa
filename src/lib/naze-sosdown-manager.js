@@ -169,8 +169,8 @@ async function sendVideoResult(m, downloaded, data, item, limits) {
     formatLabel: `Ukuran: ${Math.round(downloaded.buffer.length / (1024 * 1024))} MB`,
   });
   const fileName =
-    (sanitizeFileName(data.caption || data.author || "video").slice(0, 60) || "video") +
-    downloaded.extension;
+    (sanitizeFileName(data.caption || data.author || "video").slice(0, 60) ||
+      "video") + downloaded.extension;
 
   if (downloaded.buffer.length <= limits.mediaMessageMaxBytes) {
     await m.replyVideo(downloaded.buffer, caption);
@@ -211,85 +211,60 @@ async function sendPhotoResults(m, data, limits) {
   }
 }
 
-async function downloadSosmed(m, platform, command) {
-  try {
-    const limits = downloaderLimits();
-    const link = findSosmedLink(resolveLinkText(m));
-    if (!link) {
-      await reply(m, downloaderGuideMessage(command));
+/**
+ * Menjalankan pipeline unduhan video/foto dari URL yang sudah divalidasi.
+ * Dipakai bersama oleh perintah .tiktok/.instagram/.youtube dan oleh
+ * fitur lain yang sudah memiliki URL (mis. Pencarian YouTube).
+ */
+async function performSosmedDownload(m, url, limits) {
+  await sendWaitMessage(m);
+
+  const resolved = await resolveSosmedUrl(url, {
+    timeoutMs: limits.requestTimeoutMs,
+  });
+  if (!resolved.ok) {
+    await reply(m, resolverFailedMessage(resolved.error.message));
+    return;
+  }
+
+  const data = resolved.data;
+  if (data.durationSeconds && data.durationSeconds > limits.maxDurationSeconds) {
+    await reply(m, durationTooLongMessage(limits.maxDurationSeconds));
+    return;
+  }
+
+  if (data.type === "video") {
+    const item = choosePreferredItem(data.items);
+    if (!item) {
+      await reply(m, resolverFailedMessage("varian video tidak ditemukan"));
       return;
     }
-    if (link.platform !== platform) {
-      await reply(
-        m,
-        platformMismatchMessage(
-          command,
-          PLATFORM_LABELS[link.platform],
-          COMMANDS_BY_PLATFORM[link.platform],
-        ),
-      );
-      return;
-    }
-
-    await sendWaitMessage(m);
-
-    const resolved = await resolveSosmedUrl(link.normalizedUrl, {
+    const downloaded = await downloadMediaItem(item, {
+      platform: data.platform,
+      maxBytes: limits.maxMediaBytes,
       timeoutMs: limits.requestTimeoutMs,
     });
-    if (!resolved.ok) {
-      await reply(m, resolverFailedMessage(resolved.error.message));
+    if (!downloaded.ok) {
+      await reportDownloadFailure(m, downloaded, limits);
       return;
     }
-
-    const data = resolved.data;
-    if (data.durationSeconds && data.durationSeconds > limits.maxDurationSeconds) {
-      await reply(m, durationTooLongMessage(limits.maxDurationSeconds));
-      return;
-    }
-
-    if (data.type === "video") {
-      const item = choosePreferredItem(data.items);
-      if (!item) {
-        await reply(m, resolverFailedMessage("varian video tidak ditemukan"));
-        return;
-      }
-      const downloaded = await downloadMediaItem(item, {
-        platform: data.platform,
-        maxBytes: limits.maxMediaBytes,
-        timeoutMs: limits.requestTimeoutMs,
-      });
-      if (!downloaded.ok) {
-        await reportDownloadFailure(m, downloaded, limits);
-        return;
-      }
-      await sendVideoResult(m, downloaded, data, item, limits);
-      return;
-    }
-
-    await sendPhotoResults(m, data, limits);
-  } catch (error) {
-    logger.error("sosdown", `gagal mengunduh ${platform}: ` + error.message);
-    await reply(m, downloadFailedMessage());
+    await sendVideoResult(m, downloaded, data, item, limits);
+    return;
   }
+
+  await sendPhotoResults(m, data, limits);
 }
 
-// ---------------------------------------------------------------------------
-// Pengunduhan MP3 lintas platform
-// ---------------------------------------------------------------------------
-
-async function downloadMp3(m) {
+/**
+ * Menjalankan pipeline MP3 dari URL yang sudah divalidasi.
+ * Berkas sementara selalu dibersihkan bila terjadi kegagalan.
+ */
+async function performMp3Download(m, url, limits) {
   const tempFiles = [];
   try {
-    const limits = downloaderLimits();
-    const link = findSosmedLink(resolveLinkText(m));
-    if (!link) {
-      await reply(m, downloaderGuideMessage(".mp3"));
-      return;
-    }
-
     await sendWaitMessage(m);
 
-    const resolved = await resolveSosmedUrl(link.normalizedUrl, {
+    const resolved = await resolveSosmedUrl(url, {
       timeoutMs: limits.requestTimeoutMs,
     });
     if (!resolved.ok) {
@@ -370,18 +345,96 @@ async function downloadMp3(m) {
     }
 
     const fileName =
-      (sanitizeFileName(data.caption || data.author || "audio").slice(0, 60) || "audio") +
-      ".mp3";
+      (sanitizeFileName(data.caption || data.author || "audio").slice(0, 60) ||
+        "audio") + ".mp3";
     if (mp3.length <= limits.audioMessageMaxBytes) {
       await m.replyAudio(mp3, false);
     } else {
       await m.replyDocument(mp3, fileName, "audio/mpeg");
     }
+  } finally {
+    cleanupFiles(tempFiles);
+  }
+}
+
+async function downloadSosmed(m, platform, command) {
+  try {
+    const limits = downloaderLimits();
+    const link = findSosmedLink(resolveLinkText(m));
+    if (!link) {
+      await reply(m, downloaderGuideMessage(command));
+      return;
+    }
+    if (link.platform !== platform) {
+      await reply(
+        m,
+        platformMismatchMessage(
+          command,
+          PLATFORM_LABELS[link.platform],
+          COMMANDS_BY_PLATFORM[link.platform],
+        ),
+      );
+      return;
+    }
+    await performSosmedDownload(m, link.normalizedUrl, limits);
+  } catch (error) {
+    logger.error("sosdown", `gagal mengunduh ${platform}: ` + error.message);
+    await reply(m, downloadFailedMessage());
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Pengunduhan MP3 lintas platform
+// ---------------------------------------------------------------------------
+
+async function downloadMp3(m) {
+  try {
+    const limits = downloaderLimits();
+    const link = findSosmedLink(resolveLinkText(m));
+    if (!link) {
+      await reply(m, downloaderGuideMessage(".mp3"));
+      return;
+    }
+    await performMp3Download(m, link.normalizedUrl, limits);
   } catch (error) {
     logger.error("sosdown", "gagal membuat MP3: " + error.message);
     await reply(m, mp3FailedMessage("terjadi kesalahan saat memproses audio"));
-  } finally {
-    cleanupFiles(tempFiles);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Unduhan dari URL langsung (dipakai Pencarian YouTube)
+// ---------------------------------------------------------------------------
+
+/**
+ * Mengunduh media dari URL sosmed yang sudah diketahui tanpa membaca teks
+ * pesan. Dipakai fitur lain (mis. .ytsearch) yang sudah memiliki URL.
+ * @param {Object} m - Pesan WhatsApp
+ * @param {string} url - URL konten TikTok/Instagram/YouTube
+ * @param {"video"|"mp3"} intent - Jenis hasil yang diinginkan
+ */
+async function downloadByUrl(m, url, intent) {
+  const isMp3 = intent === "mp3";
+  try {
+    const limits = downloaderLimits();
+    const link = findSosmedLink(String(url || ""));
+    if (!link) {
+      await reply(m, resolverFailedMessage("tautan tidak dikenali"));
+      return;
+    }
+    if (isMp3) {
+      await performMp3Download(m, link.normalizedUrl, limits);
+    } else {
+      await performSosmedDownload(m, link.normalizedUrl, limits);
+    }
+  } catch (error) {
+    logger.error("sosdown", "gagal mengunduh dari URL: " + error.message);
+    await reply(
+      m,
+      isMp3
+        ? mp3FailedMessage("terjadi kesalahan saat memproses audio")
+        : downloadFailedMessage(),
+    );
   }
 }
 
@@ -408,4 +461,5 @@ export {
   downloadInstagram,
   downloadYouTube,
   downloadMp3,
+  downloadByUrl,
 };

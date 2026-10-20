@@ -36,7 +36,7 @@ const config = {
 
   bot: {
     name: "NAZE", // Nama bot
-    version: "3.8.0", // Versi bot
+    version: "3.9.0", // Versi bot
     developer: "Nendi", // Nama developer
   },
 
@@ -127,6 +127,14 @@ const config = {
     mp3MinBitrateKbps: 128, // bitrate percobaan ulang bila hasil terlalu besar
     mp3MaxBytes: 52428800, // 50 MB ukuran maksimal hasil MP3
     audioMessageMaxBytes: 16777216, // 16 MB batas kirim sebagai pesan audio
+  },
+
+  // Batas Pencarian YouTube (.ytsearch, .yts)
+  ytsearch: {
+    maxResults: 8, // jumlah hasil maksimal per pencarian
+    maxQueryLength: 100, // panjang kata kunci maksimal
+    selectionTtlMs: 600000, // 10 menit masa berlaku pilihan hasil
+    maxTitleLength: 70, // panjang judul pada daftar hasil
   },
 
   saluran: {
