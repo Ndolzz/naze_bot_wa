@@ -36,7 +36,7 @@ const config = {
 
   bot: {
     name: "NAZE", // Nama bot
-    version: "3.7.0", // Versi bot
+    version: "3.8.0", // Versi bot
     developer: "Nendi", // Nama developer
   },
 
@@ -114,6 +114,19 @@ const config = {
       maxStickers: 100, // kapasitas koleksi stiker tersimpan
       maxStickerBytes: 1048576, // 1 MB ukuran maksimal per stiker tersimpan
     },
+  },
+
+  // Batas Sosmed Downloader (.tiktok, .instagram, .youtube, .mp3)
+  downloader: {
+    maxMediaBytes: 104857600, // 100 MB ukuran maksimal media yang diunduh
+    maxDurationSeconds: 1800, // 30 menit durasi maksimal video sumber
+    maxPhotosPerPost: 5, // foto maksimal per postingan foto/carousel
+    mediaMessageMaxBytes: 67108864, // 64 MB batas kirim sebagai pesan media
+    requestTimeoutMs: 30000, // batas waktu permintaan ke platform
+    mp3BitrateKbps: 192, // bitrate MP3 bawaan
+    mp3MinBitrateKbps: 128, // bitrate percobaan ulang bila hasil terlalu besar
+    mp3MaxBytes: 52428800, // 50 MB ukuran maksimal hasil MP3
+    audioMessageMaxBytes: 16777216, // 16 MB batas kirim sebagai pesan audio
   },
 
   saluran: {
@@ -531,4 +544,3 @@ export {
   isSelf,
   getOwnerName,
 };
-
