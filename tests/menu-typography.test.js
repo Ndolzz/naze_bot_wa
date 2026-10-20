@@ -74,7 +74,6 @@ export async function runMenuTypographyTests(env) {
     fake("bucin", "fun");
     fake("tebakgambar", "game");
     fake("claninfo", "clan");
-    fake("nazedaily", "rpg");
     fake("leaderboard", "user");
     fake("ocr", "convert");
     fake("toimg", "convert");
@@ -101,11 +100,11 @@ export async function runMenuTypographyTests(env) {
 
   /* ---------------- Tipografi dasar ---------------- */
 
-  await test("stylize: contoh gaya sesuai spesifikasi (Fun, Games, Clan, RPG)", () => {
+  await test("stylize: contoh gaya sesuai spesifikasi (Fun, Games, Clan, Help)", () => {
     eq(stylize("FUN MENU", "sansBold"), "𝗙𝗨𝗡 𝗠𝗘𝗡𝗨", "Fun");
     eq(stylize("GAMES MENU", "sansBoldItalic"), "𝙂𝘼𝙈𝙀𝙎 𝙈𝙀𝙉𝙐", "Games");
     eq(stylize("CLAN MENU", "sans"), "𝖢𝖫𝖠𝖭 𝖬𝖤𝖭𝖴", "Clan");
-    eq(stylize("RPG MENU", "serifBold"), "𝐑𝐏𝐆 𝐌𝐄𝐍𝐔", "RPG");
+    eq(stylize("HELP MENU", "serifBold"), "𝐇𝐄𝐋𝐏 𝐌𝐄𝐍𝐔", "Help");
   });
 
   await test("stylize: offset code point sansBold untuk huruf dan angka", () => {
@@ -188,10 +187,10 @@ export async function runMenuTypographyTests(env) {
     eq(JSON.stringify(st.map((s) => s.key)), JSON.stringify(["main", "tools", "games", "groups", "system", "owner"]));
   });
 
-  await test("buildStructure: urutan submenu games = Fun, Games, Clan, Rank, RPG", () => {
+  await test("buildStructure: urutan submenu games = Fun, Games, Clan, Rank", () => {
     const st = buildStructure({ isOwner: true });
     const games = st.find((s) => s.key === "games");
-    eq(JSON.stringify(games.subs.map((x) => x.label)), JSON.stringify(["Fun", "Games", "Clan", "Rank", "RPG"]));
+    eq(JSON.stringify(games.subs.map((x) => x.label)), JSON.stringify(["Fun", "Games", "Clan", "Rank"]));
   });
 
   await test("buildStructure: section owner dan command owner disembunyikan bagi non-owner", () => {
@@ -285,7 +284,7 @@ export async function runMenuTypographyTests(env) {
     ok(text.includes("Versi 1.0.0"), "versi tidak ada");
     ok(text.includes(".menu games fun"), "contoh navigasi tidak ada");
     ok(text.includes(".allmenu"), "petunjuk allmenu tidak ada");
-    ok(text.includes("Fun, Games, Clan, Rank, RPG"), "petunjuk submenu games tidak ada");
+    ok(text.includes("Fun, Games, Clan, Rank"), "petunjuk submenu games tidak ada");
     ok(noBoxArt(text), "masih ada dekorasi box");
     ok(!text.includes("System Management"), "section owner bocor ke non-owner");
   });

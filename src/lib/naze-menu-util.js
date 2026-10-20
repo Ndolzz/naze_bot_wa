@@ -15,7 +15,7 @@ import {
 export const SECTIONS = [
   { key: "main", label: "Main", desc: "Profil, bantuan, dan informasi bot" },
   { key: "tools", label: "Tools", desc: "Downloader, media, dokumen, konverter, dan utilitas" },
-  { key: "games", label: "Games", desc: "Permainan, RPG, clan, dan peringkat" },
+  { key: "games", label: "Games", desc: "Permainan, clan, dan peringkat" },
   { key: "groups", label: "Groups", desc: "Moderasi, proteksi, dan pengaturan grup" },
   { key: "system", label: "System", desc: "Status, statistik, dan informasi" },
   { key: "owner", label: "Owner", desc: "Panel pengelolaan bot (khusus owner)", ownerOnly: true },
@@ -45,7 +45,6 @@ const BY_CATEGORY = {
   fun: ["games", "Fun"],
   anime: ["games", "Fun"],
   game: ["games", "Games"],
-  rpg: ["games", "RPG"],
   clan: ["games", "Clan"],
   group: ["groups", "Management"],
   info: ["system", "Information"],
@@ -83,7 +82,7 @@ place("groups", "Protection", `antibot botdetect anticulik anticustom antidocume
   antimedia antiphising antiremove antispam antisticker antiswgc antitagsw addantilink delantilink listantilink`);
 place("groups", "Automation", `absen mulaiabsen cekabsen hapusabsen autodl autodownload autoforward automedia autoreply
   autosticker autosambut notifclosegroup notifdemote notifgantitag notifopengroup notifpromote notifmakan notiftidur
-  poll afk addcmdsticker delstickercmd game rpg jadwalgroup`);
+  poll afk addcmdsticker delstickercmd game jadwalgroup`);
 
 // System
 place("system", "Status", "ping system stats cekonline cekowner cekpartner cekprem");
@@ -115,7 +114,7 @@ export const SUB_ORDER = [
   "Help", "About", "Profile",
   "Downloader", "Documents", "Media", "Stickers", "Text Effects", "Converter",
   "Search", "Account Lookup", "Utilities",
-  "Fun", "Games", "Clan", "Rank", "RPG",
+  "Fun", "Games", "Clan", "Rank",
   "Moderation", "Management", "Protection", "Automation",
   "Information", "Status",
   "Bot Management", "User Management", "Group Management", "Plugin Management", "System Management",

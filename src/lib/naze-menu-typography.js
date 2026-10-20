@@ -47,7 +47,6 @@ const SUB_STYLES = {
   Games: "sansBoldItalic",
   Clan: "sans",
   Rank: "serifItalic",
-  RPG: "serifBold",
   Moderation: "sansBoldItalic",
   Management: "serifBoldItalic",
   Protection: "sans",

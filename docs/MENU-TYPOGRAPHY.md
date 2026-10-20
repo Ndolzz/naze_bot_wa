@@ -44,7 +44,6 @@ Gaya per submenu ditetapkan pada `SUB_STYLES` di `naze-menu-typography.js`, anta
 | Games | Sans bold italic | 𝙂𝘼𝙈𝙀𝙎 |
 | Clan | Sans | 𝖢𝖫𝖠𝖭 |
 | Rank | Serif italic | 𝘙𝘈𝘕𝘒 |
-| RPG | Serif bold | 𝐑𝐏𝐆 |
 | Help | Serif bold | 𝐇𝐄𝐋𝐏 |
 | Downloader | Sans bold italic | 𝘋𝘰𝘸𝘯𝘭𝘰𝘢𝘥𝘦𝘳 |
 | Information | Monospace | 𝙸𝙽𝙵𝙾𝚁𝙼𝙰𝚃𝙸𝙾𝙽 |
