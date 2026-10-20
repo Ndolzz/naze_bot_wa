@@ -52,6 +52,7 @@ tempat umum.
 | `.totxt` | Mengubah teks menjadi file TXT |
 | `.topdf` | Menggabungkan foto dan file TXT menjadi satu PDF |
 | `.tozip` | Mengemas beberapa berkas menjadi satu ZIP |
+| `.toqr` | Mengubah teks menjadi gambar kode QR |
 | `.statusfile` | Status sesi pengumpulan berkas |
 | `.batal` | Membatalkan sesi pengumpulan berkas |
 
@@ -64,6 +65,9 @@ tempat umum.
   urutan halaman sesuai urutan kiriman.
 - `.tozip`: alurnya sama dengan `.topdf`, tetapi menerima foto, video, audio,
   pesan suara, dan dokumen; isi asli setiap berkas dipertahankan.
+- `.toqr`: balas pesan teks dengan `.toqr`, atau kirim `.toqr` diikuti teksnya;
+  bot mengirim gambar kode QR. Maksimal 1000 karakter (atur di `config.files`);
+  media tidak dapat diubah menjadi kode QR.
 - `.statusfile` dan `.batal` berlaku selama sesi berjalan.
 - Batas bawaan: 20 berkas per sesi, 50 MB per berkas, 200 MB total, sesi berakhir
   setelah 15 menit tidak aktif. Batas dapat diatur di blok `files` pada `config.js`.

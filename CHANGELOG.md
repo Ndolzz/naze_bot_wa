@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.6.0
+
+Fitur QR Generator: mengubah teks menjadi gambar kode QR.
+
+- Perintah baru: `.toqr`.
+- Sumber teks mengikuti urutan pesan yang dibalas, teks setelah perintah, lalu teks terakhir pengguna (berlaku 10 menit).
+- Kapasitas teks divalidasi sebelum pembuatan kode dan diatur lewat `config.files.qrMaxTextBytes` (bawaan 1000 karakter).
+- Gambar kode dibuat dengan paket `qrcode` yang sudah tersedia pada dependensi; tidak ada dependensi baru.
+- Foto, video, audio, dan dokumen ditolak dengan penjelasan karena kapasitas kode QR hanya cukup untuk teks.
+- Menu `.menu`, panduan `.filehelp`, dan README diperbarui.
+- Pengujian: `npm test` menjalankan `tests/file-management.test.js` dan `tests/qr-code.test.js`.
+
 ## 3.5.0
 
 Sistem pengelolaan file: TXT Generator, PDF Creator, dan ZIP Archive.

@@ -7,6 +7,7 @@ const DEFAULT_FILE_LIMITS = {
   maxFiles: 20,
   maxTotalSize: 200 * 1024 * 1024,
   sessionTimeoutMinutes: 15,
+  qrMaxTextBytes: 1000,
 };
 
 const SESSION_LABELS = {
@@ -509,6 +510,68 @@ function busyMessage() {
   ].join("\n");
 }
 
+function qrGuideMessage(maxBytes = DEFAULT_FILE_LIMITS.qrMaxTextBytes) {
+  return [
+    messageHeader("QR GENERATOR"),
+    "",
+    "Teks sumber tidak ditemukan atau kosong.",
+    "",
+    "Cara pakai:",
+    "",
+    '1. Balas pesan teks yang ingin diubah dengan ".toqr".',
+    "",
+    '2. Atau kirim ".toqr" diikuti teksnya.',
+    "",
+    "Contoh: .toqr https://contoh.com",
+    "",
+    "Kapasitas: maksimal " + maxBytes + " karakter teks per kode QR.",
+    "",
+    "Catatan: foto, video, audio, dan dokumen tidak dapat diubah menjadi kode QR karena kapasitas kode QR hanya cukup untuk teks.",
+  ].join("\n");
+}
+
+function qrMediaUnsupportedMessage(mediaName, maxBytes = DEFAULT_FILE_LIMITS.qrMaxTextBytes) {
+  return [
+    messageHeader("QR GENERATOR"),
+    "",
+    'Berkas "' + mediaName + '" tidak dapat diubah menjadi kode QR.',
+    "",
+    "Kode QR hanya dapat menampung teks dengan panjang maksimal " + maxBytes + " karakter, sehingga media tidak memenuhi ketentuan tersebut.",
+    "",
+    'Solusi: kirim ".toqr" diikuti teks atau tautan yang ingin dibagikan.',
+    "",
+    "Contoh: .toqr https://contoh.com",
+  ].join("\n");
+}
+
+function qrTooLongMessage(sizeBytes, maxBytes = DEFAULT_FILE_LIMITS.qrMaxTextBytes) {
+  return [
+    messageHeader("KESALAHAN PROSES"),
+    "",
+    "Teks terlalu panjang untuk diubah menjadi kode QR.",
+    "",
+    "Panjang teks: " + sizeBytes + " karakter.",
+    "",
+    "Batas maksimal: " + maxBytes + " karakter.",
+    "",
+    'Persingkat teksnya, lalu kirim ulang perintah ".toqr".',
+  ].join("\n");
+}
+
+function qrDoneMessage(charCount) {
+  return [
+    messageHeader("PROSES SELESAI"),
+    "",
+    "Kode QR berhasil dibuat.",
+    "",
+    "Panjang teks: " + charCount + " karakter.",
+    "",
+    "Kode dikirim sebagai gambar pada pesan berikutnya.",
+    "",
+    "Pindai kode tersebut dengan aplikasi pemindai QR.",
+  ].join("\n");
+}
+
 function menuText() {
   return [
     messageHeader(),
@@ -529,6 +592,11 @@ function menuText() {
     '   Perintah: ".tozip"',
     "   Fungsi: mengemas berbagai berkas menjadi satu ZIP",
     "   Cara pakai: mulai sesi, kirim berkas satu per satu, tutup dengan nama output",
+    "",
+    "4. QR Generator",
+    '   Perintah: ".toqr"',
+    "   Fungsi: mengubah teks menjadi gambar kode QR",
+    '   Cara pakai: balas pesan teks dengan ".toqr", atau kirim ".toqr" diikuti teksnya',
     "",
     "*PROCESS CONTROL*",
     "",
@@ -560,7 +628,7 @@ function fileHelpText(limits = DEFAULT_FILE_LIMITS) {
   return [
     messageHeader("PANDUAN PENGGUNAAN"),
     "",
-    "Fitur pengelolaan file NAZE terdiri atas TXT Generator, PDF Creator, dan ZIP Archive.",
+    "Fitur pengelolaan file NAZE terdiri atas TXT Generator, PDF Creator, ZIP Archive, dan QR Generator.",
     "",
     "1. TXT Generator",
     "",
@@ -614,6 +682,24 @@ function fileHelpText(limits = DEFAULT_FILE_LIMITS) {
     formatBytes(limits.maxTotalSize) + " total per sesi, dan sesi berakhir setelah " +
     limits.sessionTimeoutMinutes + " menit tidak aktif.",
     "",
+    "4. QR Generator",
+    "",
+    'Perintah: ".toqr"',
+    "",
+    "Fungsi: mengubah teks menjadi gambar kode QR yang dapat dipindai.",
+    "",
+    "Langkah:",
+    'a. Balas pesan teks yang ingin diubah dengan ".toqr".',
+    'b. Atau kirim ".toqr" diikuti teksnya.',
+    "",
+    "Contoh: .toqr https://contoh.com",
+    "",
+    'Hasil: bot mengirim gambar kode QR pada pesan berikutnya.',
+    "",
+    "Kapasitas: maksimal " + limits.qrMaxTextBytes + " karakter teks per kode QR.",
+    "",
+    "Foto, video, audio, dan dokumen tidak dapat diubah menjadi kode QR karena kapasitas kode QR hanya cukup untuk teks.",
+    "",
     "Pengendalian proses:",
     "",
     '".statusfile" menampilkan jenis proses, jumlah berkas, daftar berkas, dan langkah selanjutnya.',
@@ -662,6 +748,10 @@ export {
   totxtGuideMessage,
   totxtDoneMessage,
   busyMessage,
+  qrGuideMessage,
+  qrMediaUnsupportedMessage,
+  qrTooLongMessage,
+  qrDoneMessage,
   menuText,
   fileHelpText,
 };
