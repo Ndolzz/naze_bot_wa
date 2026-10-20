@@ -63,6 +63,7 @@ tempat umum.
 | `.instagram`, `.ig` | Mengunduh video, foto, atau carousel Instagram |
 | `.youtube`, `.yt` | Mengunduh video YouTube |
 | `.mp3` | Mengunduh audio TikTok, Instagram, atau YouTube sebagai MP3 |
+| `.ytsearch`, `.yts` | Mencari video YouTube lalu mengunduhnya |
 | `.filehelp` | Panduan penggunaan fitur pengelolaan file |
 | `.totxt` | Mengubah teks menjadi file TXT |
 | `.topdf` | Menggabungkan foto dan file TXT menjadi satu PDF |
@@ -117,6 +118,18 @@ tempat umum.
   diatur di blok `downloader` pada `config.js`. Detail teknis ada di
   `docs/SOSDOWN.md`.
 
+## Pencarian YouTube
+
+- `.ytsearch <kata kunci>` (alias `.yts`): mencari video YouTube dan menampilkan
+  daftar hasil bernomor berisi judul, kanal, durasi, jumlah tayangan, dan
+  tautan. Teks pesan yang dibalas juga dapat dipakai sebagai kata kunci.
+- `.ytsearch <nomor>`: mengunduh video pada nomor tersebut;
+  `.ytsearch <nomor> mp3` mengirim audionya sebagai MP3. Unduhan memakai
+  pipeline Sosmed Downloader sehingga batas durasi dan ukurannya sama.
+- Hasil pencarian terakhir disimpan per pengguna dan berlaku 10 menit
+  (atur di blok `ytsearch` pada `config.js`); setelah itu pencarian harus
+  diulang. Detail teknis ada di `docs/YTSEARCH.md`.
+
 ## Pengelolaan file
 
 - `.totxt`: balas pesan teks dengan `.totxt`, atau kirim `.totxt` diikuti teksnya;
@@ -140,10 +153,10 @@ npm test
 ```
 
 Suite berada di `tests/`. Bagian murni (utilitas sesi, tata letak BRAT, pola
-keyframe, deteksi tautan sosmed) berjalan tanpa dependensi tambahan. Bagian
-integrasi (renderer, animated WebP, penyimpanan, konversi MP3) memerlukan
-`npm install` dan otomatis dilewati dengan laporan jika dependensi belum
-tersedia.
+keyframe, deteksi tautan sosmed, penguraian pilihan pencarian) berjalan tanpa
+dependensi tambahan. Bagian integrasi (renderer, animated WebP, penyimpanan,
+konversi MP3, pencarian YouTube) memerlukan `npm install` dan otomatis
+dilewati dengan laporan jika dependensi belum tersedia.
 
 ## Struktur proyek
 

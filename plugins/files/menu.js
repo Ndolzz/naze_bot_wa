@@ -1,6 +1,7 @@
 import { menuText, BOT_TITLE } from "../../src/lib/naze-file-utils.js";
 import { stickerStudioMenuText } from "../../src/lib/naze-sticker-utils.js";
 import { sosmedDownloaderMenuText } from "../../src/lib/naze-sosdown-utils.js";
+import { ytsearchMenuText } from "../../src/lib/naze-ytsearch-utils.js";
 
 export const config = {
   name: "menu",
@@ -19,6 +20,8 @@ export async function handler(m) {
     stickerStudioMenuText(),
     "",
     sosmedDownloaderMenuText(),
+    "",
+    ytsearchMenuText(),
     "",
     menuText(false),
   ].join("\n");
