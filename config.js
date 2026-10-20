@@ -50,7 +50,6 @@ const config = {
     "naze-winner": "./assets/image/naze-winner.jpg",
     "naze-rules": "./assets/image/naze-rules.jpg",
     "naze-games": "./assets/image/naze-games.jpg",
-    "naze-rpg": "./assets/image/naze-rpg.jpg",
     "naze-fishit": "./assets/image/naze-fishit.jpg",
     "naze-minecraft": "./assets/image/naze-minecraft.jpg",
     "naze-kertas": "./assets/image/naze-kertas.jpg",

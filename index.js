@@ -1,6 +1,6 @@
+import "./src/console-guard.js";
 import "./src/lib/naze-ffmpeg-path.js";
 import path from "path";
-import fs from "fs";
 import config from "./config.js";
 import { startConnection } from "./src/connection.js";
 import {
@@ -10,20 +10,11 @@ import {
   groupSettingsHandler,
   handleAntiRemoveFromUpsert,
 } from "./src/handler.js";
-import { loadPlugins, pluginStore } from "./src/lib/naze-plugins.js";
+import { loadPlugins } from "./src/lib/naze-plugins.js";
 import { initDatabase, getDatabase } from "./src/lib/naze-database.js";
-import {
-  initScheduler,
-  loadScheduledMessages,
-  startGroupScheduleChecker,
-  startSewaChecker,
-} from "./src/lib/naze-scheduler.js";
-import { handleAntiTagSW } from "./src/lib/naze-group-protection.js";
-import { initNotifScheduler } from "./src/lib/naze-notif-scheduler.js";
 import { startMemoryMonitor } from "./src/lib/naze-memory-monitor.js";
 import { startTempCleaner } from "./src/lib/naze-temp-cleaner.js";
 import { startDailyPruner } from "./src/lib/naze-data-pruner.js";
-import { preloadAssets } from "./src/lib/naze-asset-manager.js";
 import {
   logger,
   c,
@@ -34,10 +25,6 @@ import {
   logErrorBox,
   divider,
 } from "./src/lib/naze-logger.js";
-
-await import("./src/lib/naze-agent.js")
-  .then((m) => m.initializeAgent())
-  .catch(() => { });
 
 const LOG_NOISE = new Set([
   "Closing",
@@ -86,104 +73,6 @@ console.warn = (...args) => {
 
 const startTime = Date.now();
 
-let pluginWatcher = null;
-const reloadDebounce = new Map();
-const fileStatCache = new Map();
-
-function startDevWatcher(pluginsPath) {
-  if (pluginWatcher) pluginWatcher.close();
-
-  logger.system("dev", "Hot-Reload watcher active for plugins");
-
-  pluginWatcher = fs.watch(
-    pluginsPath,
-    { recursive: true },
-    (eventType, filename) => {
-      if (!filename || !filename.endsWith(".js")) return;
-
-      const existingTimeout = reloadDebounce.get(filename);
-      if (existingTimeout) clearTimeout(existingTimeout);
-
-      const timeout = setTimeout(async () => {
-        reloadDebounce.delete(filename);
-        const fullPath = path.join(pluginsPath, filename);
-
-        if (!fs.existsSync(fullPath)) {
-          fileStatCache.delete(fullPath);
-          const pluginName = path.basename(filename, ".js");
-          const { unloadPlugin } = await import("./src/lib/naze-plugins.js");
-          const result = unloadPlugin(pluginName);
-          if (result.success) logger.warn("plugin", `removed ${filename}`);
-          return;
-        }
-
-        try {
-          const stats = fs.statSync(fullPath);
-          const cached = fileStatCache.get(fullPath);
-          const changed =
-            !cached ||
-            cached.mtimeMs !== stats.mtimeMs ||
-            cached.size !== stats.size;
-          if (!changed) return;
-
-          fileStatCache.set(fullPath, {
-            mtimeMs: stats.mtimeMs,
-            size: stats.size,
-          });
-
-          const { hotReloadPlugin } =
-            await import("./src/lib/naze-plugins.js");
-          const result = await hotReloadPlugin(fullPath);
-          if (!result.success) {
-            logger.error(
-              "plugin",
-              `reload failed: ${filename}: ${result.error}`,
-            );
-          }
-        } catch (error) {
-          logger.error(
-            "plugin",
-            `reload failed: ${filename}: ${error.message}`,
-          );
-        }
-      }, 500);
-
-      reloadDebounce.set(filename, timeout);
-    },
-  );
-
-  logger.debug("dev", `Monitoring directory: ${pluginsPath}`);
-}
-
-let srcWatcher = null;
-
-function startSrcWatcher(srcPath) {
-  if (srcWatcher) srcWatcher.close();
-
-  logger.system("dev", "Hot-Reload watcher active for src");
-
-  srcWatcher = fs.watch(srcPath, { recursive: true }, (eventType, filename) => {
-    if (!filename || !filename.endsWith(".js")) return;
-
-    const existingTimeout = reloadDebounce.get("src_" + filename);
-    if (existingTimeout) clearTimeout(existingTimeout);
-
-    const timeout = setTimeout(() => {
-      reloadDebounce.delete("src_" + filename);
-      const fullPath = path.join(srcPath, filename);
-      if (!fs.existsSync(fullPath)) {
-        logger.warn("dev", `src file removed: ${filename}`);
-        return;
-      }
-      logger.success("dev", `src changed: ${filename}`);
-    }, 500);
-
-    reloadDebounce.set("src_" + filename, timeout);
-  });
-
-  logger.debug("dev", `Monitoring directory: ${srcPath}`);
-}
-
 function setupAntiCrash() {
   process.on("uncaughtException", (error, origin) => {
     const ignoredErrors = [
@@ -212,7 +101,7 @@ function setupAntiCrash() {
   });
 
   process.on("warning", (warning) => {
-    logger.warn("system", `${warning.name}: ${warning.message}`);
+    logger.warn("system", warning.name + ": " + warning.message);
   });
 
   process.on("SIGINT", async () => {
@@ -224,7 +113,7 @@ function setupAntiCrash() {
       db.save();
       logger.success("database", "All data successfully saved");
     } catch (error) {
-      logger.warn("database", `save failed: ${error.message}`);
+      logger.warn("database", "save failed: " + error.message);
     }
     logger.info("system", "Engine stopped safely");
     process.exit(0);
@@ -255,9 +144,6 @@ async function main() {
   await initDatabase(dbPath);
   const db = getDatabase();
 
-  await spinText("system", "Starting local asset cache server...", { tone: "accent" });
-  await preloadAssets(config.assets);
-
   const savedMode = db.setting("botMode");
   if (savedMode && (savedMode === "self" || savedMode === "public"))
     config.mode = savedMode;
@@ -270,24 +156,20 @@ async function main() {
   const bCount = Array.isArray(savedBanned) ? savedBanned.length : 0;
   logger.success(
     "database",
-    `Database initialized | Mode: ${config.mode} | Premium: ${pCount} | Banned: ${bCount}`,
+    "Database initialized | Mode: " +
+      config.mode +
+      " | Premium: " +
+      pCount +
+      " | Banned: " +
+      bCount,
   );
 
   const pluginsPath = path.join(process.cwd(), "plugins");
   const pluginCount = await loadPlugins(pluginsPath);
-  logger.success("plugin", `${pluginCount} modules loaded successfully`);
-
-  if (config.dev?.enabled && config.dev?.watchPlugins)
-    startDevWatcher(pluginsPath);
-  if (config.dev?.enabled && config.dev?.watchSrc) {
-    const srcPath = path.join(process.cwd(), "src");
-    startSrcWatcher(srcPath);
-  }
-
-  initScheduler(config);
+  logger.success("plugin", pluginCount + " modules loaded successfully");
 
   const bootTime = Date.now() - startTime;
-  logger.success("boot", `System initialized in ${bootTime}ms`);
+  logger.success("boot", "System initialized in " + bootTime + "ms");
   divider();
   await spinText("network", "Opening WhatsApp connection tunnel...", {
     duration: 900,
@@ -297,13 +179,6 @@ async function main() {
   console.log("");
 
   await startConnection({
-    onRawMessage: async (msg, sock) => {
-      try {
-        const db = getDatabase();
-        await handleAntiTagSW(msg, sock, db);
-      } catch (error) { }
-    },
-
     onMessage: async (msg, sock) => {
       try {
         const handlerPromise = messageHandler(msg, sock);
@@ -362,38 +237,12 @@ async function main() {
             plugins: (await import("./src/lib/naze-plugins.js")).getAllPlugins().length,
           });
         }
-        loadScheduledMessages(sock);
-        startGroupScheduleChecker(sock);
-        startSewaChecker(sock);
-        initScheduler(config, sock);
-        initNotifScheduler(sock);
-        try {
-          const { getAllJadibotSessions, restartJadibotSession } =
-            await import("./src/lib/naze-jadibot-manager.js");
-          const sessions = getAllJadibotSessions();
-          if (sessions.length > 0) {
-            logger.info("JADIBOT", `Restoring ${sessions.length} session(s)`);
-            for (const session of sessions) {
-              try {
-                await restartJadibotSession(sock, session.id);
-                await new Promise((r) => setTimeout(r, 3000));
-              } catch (e) {
-                logger.error(
-                  "JADIBOT",
-                  `Failed restore ${session.id}: ${e.message}`,
-                );
-              }
-            }
-          }
-        } catch (e) {
-          logger.error("JADIBOT", `Gagal memulihkan: ${e.message}`);
-        }
 
-        const devLabel = config.dev?.enabled ? ` ${c.yellow("• dev")}` : "";
         startMemoryMonitor();
         startTempCleaner();
         startDailyPruner();
-        logger.success("ready", `All subsystems are fully operational${devLabel}`);
+        const devLabel = config.dev?.enabled ? " " + c.yellow("• dev") : "";
+        logger.success("ready", "All subsystems are fully operational" + devLabel);
         divider();
       }
     },
