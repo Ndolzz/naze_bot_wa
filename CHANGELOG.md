@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.10.0
+
+Vector: mengubah gambar menjadi siluet vektor SVG. Mesin vektorisasi diadaptasi dari repositori nazevector tanpa dependensi baru.
+
+- Perintah baru: `.vector` (alias `.vektor`), kategori tools.
+- Kirim atau balas gambar/stiker dengan `.vector`; bot mengirim PNG pratinjau hasil dan berkas `siluet.svg` sebagai dokumen.
+- Opsi (urutan bebas): `"gelap"`/`"terang"` untuk bagian gambar yang menjadi siluet, angka 1-99 untuk ambang luminansi, `"rendah"`/`"sedang"`/`"tinggi"` untuk tingkat penyederhanaan titik, dan warna `"#RRGGBB"` untuk isi siluet.
+- Mesin vektorisasi (`src/lib/naze-vector-engine.js`) diadaptasi dari `js/modules/silhouette.js` dan `js/modules/vectorEngine.js` pada repositori Ndolzz/nazevector dengan algoritme identik: mask biner berbasis luminansi, penelusuran kontur crack boundary (marching squares), penggabungan titik kolinear, dan penyederhanaan Ramer-Douglas-Peucker.
+- Pembacaan piksel memakai sharp pada resolusi kerja (tanpa memperbesar, sisi terpanjang `config.vector.maxWorkDimension`); pratinjau PNG dirasterisasi dari SVG dan jatuh kembali ke pratinjau mask bila rasterisasi SVG tidak tersedia pada build sharp.
+- Batas ukuran gambar, resolusi kerja, ambang, mode, penyederhanaan, warna bawaan, dan lebar pratinjau diatur di blok `vector` pada `config.js`.
+- Menu `.menu` menampilkan bagian VECTOR setelah YOUTUBE SEARCH.
+- Pengujian: `npm test` menjalankan `tests/vector.test.js` di samping suite lama.
+
 ## 3.9.0
 
 Pencarian YouTube: mencari video lewat yt-search lalu mengunduh hasilnya sebagai video atau MP3.

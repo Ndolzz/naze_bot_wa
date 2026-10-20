@@ -36,7 +36,7 @@ const config = {
 
   bot: {
     name: "NAZE", // Nama bot
-    version: "3.9.0", // Versi bot
+    version: "3.10.0", // Versi bot
     developer: "Nendi", // Nama developer
   },
 
@@ -135,6 +135,17 @@ const config = {
     maxQueryLength: 100, // panjang kata kunci maksimal
     selectionTtlMs: 600000, // 10 menit masa berlaku pilihan hasil
     maxTitleLength: 70, // panjang judul pada daftar hasil
+  },
+
+  // Batas Vector (.vector): vektorisasi siluet gambar menjadi SVG
+  vector: {
+    maxMediaBytes: 15728640, // 15 MB ukuran maksimal gambar sumber
+    maxWorkDimension: 1024, // sisi terpanjang resolusi kerja mask (tanpa memperbesar)
+    defaultThresholdPercent: 50, // ambang luminansi bawaan (persen)
+    defaultMode: "gelap", // "gelap" (objek gelap) atau "terang" (objek terang)
+    defaultSimplification: "sedang", // penyederhanaan titik bawaan: rendah|sedang|tinggi
+    defaultColor: "#0F172A", // warna isi siluet bawaan
+    previewMaxWidth: 1280, // lebar maksimal PNG pratinjau
   },
 
   saluran: {
