@@ -48,6 +48,17 @@ tempat umum.
 | Perintah | Isi |
 | --- | --- |
 | `.menu` | Menu utama NAZE |
+| `.sticker`, `.s`, `.stiker` | Membuat stiker dari gambar atau video |
+| `.brat` | Membuat stiker teks BRAT statis |
+| `.bratvid` | Membuat stiker teks BRAT animasi |
+| `.toimg` | Mengubah stiker menjadi gambar |
+| `.togif` | Mengubah stiker animasi menjadi GIF |
+| `.tovideo` | Mengubah stiker animasi menjadi video |
+| `.take` | Mengubah metadata pembuat stiker |
+| `.steal` | Mengambil stiker dengan metadata baru, opsional menyimpan |
+| `.getsticker` | Mengambil stiker tersimpan berdasarkan nama |
+| `.liststicker` | Menampilkan daftar stiker tersimpan |
+| `.delsticker` | Menghapus stiker tersimpan berdasarkan nama |
 | `.filehelp` | Panduan penggunaan fitur pengelolaan file |
 | `.totxt` | Mengubah teks menjadi file TXT |
 | `.topdf` | Menggabungkan foto dan file TXT menjadi satu PDF |
@@ -55,6 +66,32 @@ tempat umum.
 | `.toqr` | Mengubah teks menjadi gambar kode QR |
 | `.statusfile` | Status sesi pengumpulan berkas |
 | `.batal` | Membatalkan sesi pengumpulan berkas |
+
+## Sticker Studio
+
+- `.sticker`: kirim atau balas gambar/video dengan `.sticker`; gambar menjadi
+  stiker statis, video (maksimal 10 detik, atur di `config.stickerStudio`)
+  menjadi stiker animasi.
+- `.brat`: kirim `.brat` diikuti teksnya, atau balas pesan teks dengan `.brat`.
+  Teks dirender 512 x 512 piksel: background putih solid, teks hitam
+  sans-serif, ukuran font dan pemenggalan baris dihitung otomatis agar teks
+  memenuhi kanvas. Hasil berupa WebP statis.
+- `.bratvid`: seperti `.brat`, tetapi hasilnya animated WebP. Setiap perintah
+  memilih satu dari lima pola keyframe secara acak dengan peluang sama:
+  Elastic Snap, Wave Cascade, Orbit Shift, Beat Pulse, dan Split Reassemble.
+  Pola yang sama tidak muncul dua kali berturut-turut dalam satu proses bot.
+  Animated WebP divalidasi (format, dimensi, animasi, ukuran) sebelum dikirim.
+- `.toimg`: mengubah stiker menjadi gambar PNG (stiker animasi diambil dari
+  bingkai pertamanya).
+- `.togif`: mengubah stiker animasi menjadi berkas GIF; `.tovideo` menjadi
+  video MP4. Keduanya menolak stiker statis.
+- `.take`: kirim atau balas stiker dengan `.take nama pack | nama author` untuk
+  mengubah metadata pembuatnya; tanpa argumen memakai default `config.sticker`.
+- `.steal`: mengambil stiker dengan metadata baru (author diisi nama pengguna).
+  Tambahkan nama, contoh `.steal kucing`, untuk menyimpannya ke koleksi.
+- `.getsticker`, `.liststicker`, `.delsticker`: mengelola koleksi stiker
+  tersimpan. Hanya penyimpan stiker atau owner bot yang dapat menghapus.
+  Koleksi disimpan di `storage/stickers/` dan dibatasi `config.stickerStudio.store`.
 
 ## Pengelolaan file
 
@@ -78,23 +115,23 @@ tempat umum.
 npm test
 ```
 
-Suite berada di `tests/file-management.test.js`. Bagian murni (utilitas sesi,
-validasi nama, penyusun PDF) berjalan tanpa dependensi tambahan. Bagian
-integrasi (orkestrator sesi, pembuatan ZIP) memerlukan `npm install` dan otomatis
-dilewati dengan laporan jika dependensi belum tersedia.
+Suite berada di `tests/`. Bagian murni (utilitas sesi, tata letak BRAT, pola
+keyframe) berjalan tanpa dependensi tambahan. Bagian integrasi (renderer,
+animated WebP, penyimpanan) memerlukan `npm install` dan otomatis dilewati
+dengan laporan jika dependensi belum tersedia.
 
 ## Struktur proyek
 
 ```
 NAZE Bot
-├── index.js        Titik masuk dan inisialisasi
+├── index.js        Titik masuk
 ├── config.js       Konfigurasi
 ├── case/           Perintah berbasis case
 ├── plugins/        Perintah berbasis plugin (per kategori)
 ├── src/
 │   ├── connection.js   Koneksi dan pairing WhatsApp
 │   ├── handler.js      Penanganan pesan dan perintah
-│   ├── lib/            Library internal (plugin loader, serializer, PDF, dll.)
+│   ├── lib/            Library internal (plugin loader, serializer, PDF, sticker, dll.)
 │   └── data/           Data game
 ├── database/       Data bot
 ├── storage/        Sesi WhatsApp dan berkas sementara (dibuat otomatis, jangan dibagikan)

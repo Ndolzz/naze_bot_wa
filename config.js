@@ -36,7 +36,7 @@ const config = {
 
   bot: {
     name: "NAZE", // Nama bot
-    version: "3.6.0", // Versi bot
+    version: "3.7.0", // Versi bot
     developer: "Nendi", // Nama developer
   },
 
@@ -100,6 +100,20 @@ const config = {
   sticker: {
     packname: "NAZE", // Nama pack sticker
     author: "NAZE", // Author sticker
+  },
+
+  stickerStudio: {
+    maxTextLength: 500, // panjang teks maksimal untuk .brat dan .bratvid
+    maxMediaBytes: 31457280, // 30 MB ukuran maksimal media sumber stiker
+    maxVideoSeconds: 10, // durasi video maksimal untuk .sticker
+    bratvidDurationSeconds: 3, // durasi satu putaran animasi .bratvid
+    bratvidFps: 10, // frame rate animasi .bratvid
+    bratvidMaxBytes: 1048576, // 1 MB ukuran maksimal animated WebP
+    gifMaxBytes: 15728640, // 15 MB ukuran maksimal hasil .togif
+    store: {
+      maxStickers: 100, // kapasitas koleksi stiker tersimpan
+      maxStickerBytes: 1048576, // 1 MB ukuran maksimal per stiker tersimpan
+    },
   },
 
   saluran: {
@@ -517,3 +531,4 @@ export {
   isSelf,
   getOwnerName,
 };
+

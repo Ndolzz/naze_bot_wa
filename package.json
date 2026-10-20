@@ -1,6 +1,6 @@
 {
   "name": "naze-bot",
-  "version": "3.6.0",
+  "version": "3.7.0",
   "description": "NAZE Bot: bot WhatsApp multi-device dengan sistem plugin modular",
   "author": "Nendi",
   "license": "ISC",
@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "node tests/file-management.test.js && node tests/qr-code.test.js"
+    "test": "node tests/file-management.test.js && node tests/qr-code.test.js && node tests/sticker-studio.test.js"
   },
   "engines": {
     "node": ">=20.0.0"

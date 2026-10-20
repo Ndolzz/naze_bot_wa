@@ -572,10 +572,10 @@ function qrDoneMessage(charCount) {
   ].join("\n");
 }
 
-function menuText() {
+function menuText(withHeader = true) {
+  const header = withHeader ? [messageHeader(), ""] : [];
   return [
-    messageHeader(),
-    "",
+    ...header,
     "*FILE MANAGEMENT*",
     "",
     "1. TXT Generator",
@@ -755,3 +755,4 @@ export {
   menuText,
   fileHelpText,
 };
+
