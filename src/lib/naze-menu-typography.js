@@ -44,7 +44,6 @@ const SUB_STYLES = {
   Utilities: "sansBold",
   Fun: "sansBold",
   Games: "sansBoldItalic",
-  Clan: "sans",
   Rank: "serifItalic",
   Moderation: "sansBoldItalic",
   Management: "serifBoldItalic",

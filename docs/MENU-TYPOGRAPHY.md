@@ -42,7 +42,6 @@ Gaya per submenu ditetapkan pada `SUB_STYLES` di `naze-menu-typography.js`, anta
 | --- | --- | --- |
 | Fun | Sans bold | 𝗙𝗨𝗡 |
 | Games | Sans bold italic | 𝙂𝘼𝙈𝙀𝙎 |
-| Clan | Sans | 𝖢𝖫𝖠𝖭 |
 | Rank | Serif italic | 𝘙𝘈𝘕𝘒 |
 | Help | Serif bold | 𝐇𝐄𝐋𝐏 |
 | Downloader | Sans bold italic | 𝘋𝘰𝘸𝘯𝘭𝘰𝘢𝘥𝘦𝘳 |
