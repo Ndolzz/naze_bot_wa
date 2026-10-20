@@ -1,3 +1,4 @@
+import "./src/console-guard.js";
 import "./src/lib/naze-ffmpeg-path.js";
 import path from "path";
 import config from "./config.js";
