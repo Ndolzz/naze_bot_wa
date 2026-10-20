@@ -9,7 +9,7 @@ import { getCasesByCategory } from "../../case/naze.js";
 export const SECTIONS = [
   { key: "main", label: "Main", desc: "Profil, bantuan, dan informasi bot" },
   { key: "tools", label: "Tools", desc: "Downloader, media, dokumen, konverter, dan utilitas" },
-  { key: "games", label: "Games", desc: "Permainan, clan, dan peringkat" },
+  { key: "games", label: "Games", desc: "Permainan dan peringkat" },
   { key: "groups", label: "Groups", desc: "Moderasi, proteksi, dan pengaturan grup" },
   { key: "system", label: "System", desc: "Status, statistik, dan informasi" },
   { key: "owner", label: "Owner", desc: "Panel pengelolaan bot (khusus owner)", ownerOnly: true },
@@ -39,7 +39,6 @@ const BY_CATEGORY = {
   fun: ["games", "Fun"],
   anime: ["games", "Fun"],
   game: ["games", "Games"],
-  clan: ["games", "Clan"],
   group: ["groups", "Management"],
   info: ["system", "Information"],
   cek: ["system", "Status"],
