@@ -59,6 +59,10 @@ tempat umum.
 | `.getsticker` | Mengambil stiker tersimpan berdasarkan nama |
 | `.liststicker` | Menampilkan daftar stiker tersimpan |
 | `.delsticker` | Menghapus stiker tersimpan berdasarkan nama |
+| `.tiktok` | Mengunduh video atau foto TikTok |
+| `.instagram`, `.ig` | Mengunduh video, foto, atau carousel Instagram |
+| `.youtube`, `.yt` | Mengunduh video YouTube |
+| `.mp3` | Mengunduh audio TikTok, Instagram, atau YouTube sebagai MP3 |
 | `.filehelp` | Panduan penggunaan fitur pengelolaan file |
 | `.totxt` | Mengubah teks menjadi file TXT |
 | `.topdf` | Menggabungkan foto dan file TXT menjadi satu PDF |
@@ -93,6 +97,26 @@ tempat umum.
   tersimpan. Hanya penyimpan stiker atau owner bot yang dapat menghapus.
   Koleksi disimpan di `storage/stickers/` dan dibatasi `config.stickerStudio.store`.
 
+## Sosmed Downloader
+
+- `.tiktok`, `.instagram` (alias `.ig`), `.youtube` (alias `.yt`): kirim
+  perintah diikuti tautannya, atau balas pesan berisi tautan. Platform dikenali
+  otomatis; tautan yang tidak sesuai perintah akan ditolak dengan saran perintah
+  yang tepat.
+- Video dikirim sebagai pesan video bila memenuhi batas ukuran, selain itu
+  sebagai dokumen. Postingan foto/carousel Instagram dikirim hingga lima foto
+  pertama.
+- `.mp3`: mengunduh audio dari tautan TikTok, Instagram, atau YouTube (platform
+  dikenali otomatis), lalu mengonversinya menjadi MP3 192 kbps dengan metadata
+  ID3v2.3 dan sampul bila tersedia. Hasil yang melebihi batas dikompresi ulang
+  sekali pada 128 kbps.
+- Resolver membaca halaman publik platform tanpa API resmi; seluruh permintaan
+  memakai fetch bawaan Node dengan batas waktu. Cookie sesi media disimpan di
+  memori proses untuk meneruskan unduhan ke CDN TikTok/Instagram.
+- Batas ukuran media, durasi, foto per postingan, bitrate MP3, dan waktu tunggu
+  diatur di blok `downloader` pada `config.js`. Detail teknis ada di
+  `docs/SOSDOWN.md`.
+
 ## Pengelolaan file
 
 - `.totxt`: balas pesan teks dengan `.totxt`, atau kirim `.totxt` diikuti teksnya;
@@ -116,9 +140,10 @@ npm test
 ```
 
 Suite berada di `tests/`. Bagian murni (utilitas sesi, tata letak BRAT, pola
-keyframe) berjalan tanpa dependensi tambahan. Bagian integrasi (renderer,
-animated WebP, penyimpanan) memerlukan `npm install` dan otomatis dilewati
-dengan laporan jika dependensi belum tersedia.
+keyframe, deteksi tautan sosmed) berjalan tanpa dependensi tambahan. Bagian
+integrasi (renderer, animated WebP, penyimpanan, konversi MP3) memerlukan
+`npm install` dan otomatis dilewati dengan laporan jika dependensi belum
+tersedia.
 
 ## Struktur proyek
 

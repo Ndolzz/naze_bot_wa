@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.8.0
+
+Sosmed Downloader: pengunduhan video/foto TikTok, Instagram, dan YouTube, serta konversi audio menjadi MP3.
+
+- Perintah baru: `.tiktok`, `.instagram` (alias `.ig`), `.youtube` (alias `.yt`), `.mp3`.
+- Tautan dapat dikirim bersama perintah atau dibalas. Platform dikenali otomatis; bila tautan tidak sesuai perintah, bot menyarankan perintah yang tepat.
+- Resolver dipindahkan dari repositori `naze-sosdown` tanpa dependensi baru: seluruh permintaan memakai fetch bawaan Node dengan batas waktu. Tidak ada API resmi yang dipakai.
+- TikTok dibaca dari blok JSON `__UNIVERSAL_DATA_FOR_REHYDRATION__` pada halaman video/foto; Instagram dari halaman embed publik; YouTube dari player Innertube (klien Android) dengan fallback halaman watch dan decipher `base.js`.
+- `.mp3` mengunduh audio dari tautan mana pun di antara ketiga platform, lalu mengonversinya menjadi MP3 192 kbps dengan metadata ID3v2.3 dan sampul (bila tersedia) memakai ffmpeg; hasil yang melebihi batas dikompresi ulang sekali pada 128 kbps.
+- Video dikirim sebagai pesan video bila memenuhi batas ukuran, selain itu sebagai dokumen. Postingan foto/carousel Instagram dikirim hingga lima foto pertama.
+- Cookie sesi media disimpan di memori proses agar unduhan dapat diteruskan ke CDN TikTok/Instagram yang menolak permintaan tanpa cookie.
+- Batas ukuran media, durasi, foto per postingan, bitrate MP3, dan waktu tunggu diatur di blok `downloader` pada `config.js`.
+- Menu `.menu` menampilkan bagian SOSMED DOWNLOADER di antara Sticker Studio dan File Management.
+- Pengujian: `npm test` menjalankan `tests/sosdown.test.js` di samping suite lama.
+
 ## 3.7.0
 
 Sticker Studio: pembuatan stiker, BRAT statis, BRATVID animasi, konversi media, dan pengelolaan stiker.
