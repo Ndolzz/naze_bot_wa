@@ -34,6 +34,7 @@ import axios from "axios";
 import { getDatabase } from "./naze-database.js";
 import { saluranCtx } from "./naze-context.js";
 import { getAssetBuffer } from "./naze-asset-manager.js";
+import { getBannerImage } from "./naze-banner.js";
 import sharp from "sharp";
 let _prefixCache = null;
 let _prefixCacheTime = 0;
@@ -786,10 +787,30 @@ async function serialize(sock, msg, store = {}) {
       ...options.contextInfo,
     };
     const quotedMsg = options.quoted !== false ? msg : undefined;
+    const { banner: bannerOption, ...sendOptions } = options;
+
+    let banner = null;
+    if (bannerOption !== false && typeof text === "string") {
+      banner = await getBannerImage().catch(() => null);
+    }
+
+    if (banner && typeof text === "string" && text.length <= 1024) {
+      return sock.sendMessage(
+        m.chat,
+        { image: banner, caption: text, contextInfo, ...sendOptions },
+        { quoted: quotedMsg },
+      );
+    }
+
+    if (banner) {
+      await sock
+        .sendMessage(m.chat, { image: banner }, { quoted: quotedMsg })
+        .catch(() => {});
+    }
 
     return sock.sendMessage(
       m.chat,
-      { text, contextInfo, ...options },
+      { text, contextInfo, ...sendOptions },
       { quoted: quotedMsg },
     );
   };

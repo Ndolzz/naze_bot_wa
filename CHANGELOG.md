@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.8.0
+
+Banner NAZE, menu dinamis, dan fitur pencarian, downloader, serta vektorisasi Alight Motion.
+
+- Banner NAZE kini menyertai setiap balasan teks bot (`m.reply`). Teks pendek dikirim sebagai gambar banner dengan caption; teks panjang dikirim sebagai banner tersendiri diikuti pesan teks. Banner diambil dari aset `naze-logo` (`assets/image/naze-logo.jpg`) bila tersedia; jika tidak ada, banner dibuat otomatis oleh `src/lib/naze-banner.js` (font piksel internal, dikodekan JPEG dengan sharp). Opsi `{ banner: false }` pada `m.reply` mematikan banner untuk satu pesan.
+- Menu `.menu` ditulis ulang menjadi dinamis: seluruh plugin yang terpasang dikelompokkan per kategori (Pengelolaan File, Sticker Studio, Game, Pencarian, Downloader, Alat) dengan nama, alias, dan deskripsi masing-masing.
+- Perintah baru: `.ytsearch` (alias `.yts`) untuk mencari video di YouTube (6 hasil: judul, durasi, jumlah tayangan, tautan).
+- Perintah baru: `.ytmp3` dan `.ytmp4` untuk mengunduh audio/video YouTube, menerima tautan maupun kata kunci, dengan pilihan kualitas (audio 92/128/256/320 kbps, video 144p-1080p) dan batas 64 MB per berkas. Ditangani modul `src/lib/naze-youtube.js` (yt-search, @vreden/youtube_scraper, axios; tanpa dependensi baru).
+- Perintah baru: `.amvector` mengubah gambar menjadi siluet vektor XML Alight Motion. Mode `isi`, `garis` (line art), `kontur`; warna global `#rrggbb` atau sampel warna asli (`asli`); siluet `gelap`/`terang` dengan ambang 1-99. Modul pipeline murni dipindahkan dari repositori nazevector ke `src/lib/vector/` tanpa perubahan, diorkestrasi `src/lib/naze-vector.js` (sharp untuk dekode gambar, maks 15 MB).
+- Plugin `plugins/game/pixelfishing.js` dipindahkan ke format plugin v3.7.0 (ekspor `config` + `handler`) sehingga kini benar-benar dimuat oleh plugin loader; isi game (GAME_HTML) tetap identik byte demi byte dan tampil sebagai pesan interaktif (richResponseMessage) dengan reaksi 🎣.
+- Banner otomatis dapat diganti kapan saja: letakkan berkas gambar asli pada `assets/image/naze-logo.jpg` lalu restart bot.
+
 ## 3.7.0
 
 Sticker Studio: pembuatan stiker, BRAT statis, BRATVID animasi, konversi media, dan pengelolaan stiker.

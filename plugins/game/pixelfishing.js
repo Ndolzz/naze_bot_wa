@@ -4,10 +4,19 @@
  * sehingga plugin berdiri sendiri tanpa membaca file dari disk.
  */
 
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from "node:crypto";
 
-// Isi game (dulunya assets/pixelfishing/game.html) ditanam apa adanya di bawah.
-// String.raw menjaga backslash (mis. regex /\s+/g) tetap identik dengan file aslinya.
+export const config = {
+  name: "pixelfishing",
+  alias: ["pixelfish", "pfish"],
+  category: "game",
+  description:
+    "Pixel Fishing: memancing pixel dengan 20 jenis ikan, 5 tingkat kelangkaan, dan koleksi tersimpan",
+  usage: ".pixelfishing",
+  example: ".pixelfish",
+  cooldown: 5,
+};
+
 const GAME_HTML = String.raw`<!DOCTYPE html>
 <html lang="id"><head>
 <meta charset="UTF-8">
@@ -1026,15 +1035,17 @@ requestAnimationFrame(function(t){last=t;frame(t)});
 })();
 </script>
 </body></html>
-`
+`;
 
-const handler = async (m, { conn }) => {
-  if (!m?.chat || !conn) return
+export async function handler(m, { sock }) {
+  if (!m?.chat || !sock) return;
 
-  const html = GAME_HTML
-
-  const key = m?.raw?.key || m?.key
-  if (key) await conn.sendMessage(m.chat, { react: { text: '🎣', key } }).catch(() => {})
+  const key = m?.raw?.key || m?.key;
+  if (key) {
+    await sock
+      .sendMessage(m.chat, { react: { text: "🎣", key } })
+      .catch(() => {});
+  }
 
   const payload = Buffer.from(
     JSON.stringify({
@@ -1043,58 +1054,49 @@ const handler = async (m, { conn }) => {
         {
           view_model: {
             primitive: {
-              __typename: 'GenAIaeacdsnwHtmlPrimitive',
-              payload: html,
-              trusted_sources: []
+              __typename: "GenAIaeacdsnwHtmlPrimitive",
+              payload: GAME_HTML,
+              trusted_sources: [],
             },
-            __typename: 'GenAISingleLayoutViewModel'
-          }
-        }
-      ]
-    })
-  ).toString('base64')
+            __typename: "GenAISingleLayoutViewModel",
+          },
+        },
+      ],
+    }),
+  ).toString("base64");
 
   try {
-    await conn.relayMessage(
+    await sock.relayMessage(
       m.chat,
       {
         messageContextInfo: {
           deviceListMetadata: {},
           deviceListMetadataVersion: 2,
-          botMetadata: {}
+          botMetadata: {},
         },
         botForwardedMessage: {
           message: {
             richResponseMessage: {
               messageType: 1,
-              submessages: [{ messageType: 2, messageText: 'Pixel Fishing 🎣' }],
+              submessages: [{ messageType: 2, messageText: "Pixel Fishing 🎣" }],
               unifiedResponse: { data: payload },
               contextInfo: {
                 forwardingScore: 1,
                 isForwarded: true,
-                forwardedAiBotMessageInfo: { botJid: '867051314767696@bot' },
-                forwardOrigin: 4
-              }
-            }
-          }
-        }
+                forwardedAiBotMessageInfo: { botJid: "867051314767696@bot" },
+                forwardOrigin: 4,
+              },
+            },
+          },
+        },
       },
-      {}
-    )
-  } catch (err) {
-    await conn.sendMessage(
-      m.chat,
-      { text: 'Game gagal dikirim. Versi WhatsApp atau Baileys kamu mungkin belum mendukung pesan interaktif ini.' },
-      { quoted: m.raw }
-    ).catch(() => {})
+      {},
+    );
+  } catch {
+    await m
+      .reply(
+        "Game gagal dikirim. Versi WhatsApp atau Baileys kamu mungkin belum mendukung pesan interaktif ini.",
+      )
+      .catch(() => {});
   }
 }
-
-handler.help = ['pixelfish', 'pfish']
-handler.tags = ['game']
-handler.command = /^(pixelfish|pixelfishing|pfish)$/i
-handler.category = 'game'
-handler.groupOnly = false
-handler.description = 'Pixel Fishing: memancing pixel dengan 20 jenis ikan, 5 tingkat kelangkaan, dan koleksi tersimpan'
-
-export default handler

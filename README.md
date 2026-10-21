@@ -66,6 +66,58 @@ tempat umum.
 | `.toqr` | Mengubah teks menjadi gambar kode QR |
 | `.statusfile` | Status sesi pengumpulan berkas |
 | `.batal` | Membatalkan sesi pengumpulan berkas |
+| `.ytsearch`, `.yts` | Mencari video di YouTube |
+| `.ytmp3` | Mengunduh audio YouTube (MP3, maks 64 MB) |
+| `.ytmp4` | Mengunduh video YouTube (MP4, maks 64 MB) |
+| `.amvector` | Mengubah gambar menjadi siluet vektor XML Alight Motion |
+| `.pixelfishing`, `.pixelfish`, `.pfish` | Game memancing Pixel Fishing (pesan interaktif) |
+
+## Banner NAZE
+
+Setiap balasan teks bot otomatis menyertai banner NAZE. Teks pendek (maks 1024
+karakter) dikirim sebagai gambar banner dengan caption; teks yang lebih panjang
+dikirim sebagai banner tersendiri diikuti pesan teks. Banner diambil dari
+`assets/image/naze-logo.jpg` bila tersedia; jika berkas tersebut tidak ada,
+banner dibuat otomatis oleh `src/lib/naze-banner.js`. Untuk memakai banner
+buatan sendiri, letakkan berkas gambar pada `assets/image/naze-logo.jpg` lalu
+restart bot.
+
+## Pencarian dan Downloader
+
+- `.ytsearch` / `.yts`: mencari video di YouTube. Contoh: `.yts musik lofi`.
+  Menampilkan 6 hasil berisi judul, durasi, jumlah tayangan, dan tautan.
+- `.ytmp3`: mengunduh audio YouTube sebagai MP3. Menerima tautan atau kata
+  kunci, diikuti kualitas opsional `92`, `128` (bawaan), `256`, atau `320`.
+  Contoh: `.ytmp3 https://youtu.be/xxxx 128`.
+- `.ytmp4`: mengunduh video YouTube sebagai MP4. Kualitas opsional `144`,
+  `360` (bawaan), `480`, `720`, atau `1080`. Contoh:
+  `.ytmp4 https://youtu.be/xxxx 480`.
+- Kedua downloader membatasi ukuran berkas 64 MB agar aman dikirim sebagai
+  pesan WhatsApp; kata kunci otomatis diubah menjadi video pertama hasil
+  pencarian.
+
+## Vektorisasi Alight Motion
+
+- `.amvector`: kirim atau balas gambar (PNG/JPEG/WebP, maks 15 MB) dengan
+  `.amvector`. Hasil berupa berkas XML yang dapat diimpor ke Alight Motion.
+- Argumen opsional: `isi` (bentuk terisi, bawaan), `garis` (line art dengan
+  goresan tipis), `kontur` (satu layer per garis tepi); `asli` untuk memakai
+  warna asli gambar per komponen/kontur; `gelap` (bawaan) atau `terang` untuk
+  memilih bagian gambar yang menjadi siluet; angka `1-99` untuk ambang
+  kecerahan; `#rrggbb` untuk warna global.
+- Contoh: `.amvector garis` untuk line art, `.amvector asli 60` untuk bentuk
+  terisi dengan warna asli pada ambang 60.
+- Pipeline vektorisasi dipindahkan dari repositori nazevector ke
+  `src/lib/vector/` (murni, tanpa DOM) dan diorkestrasi oleh
+  `src/lib/naze-vector.js`.
+
+## Game
+
+- `.pixelfishing` / `.pixelfish` / `.pfish`: game memancing bergaya pixel
+  dengan 20 jenis ikan, 5 tingkat kelangkaan, koleksi, toko, dan penyimpanan
+  progres. Game tampil langsung di chat sebagai pesan interaktif; jika versi
+  WhatsApp tidak mendukung pesan interaktif, bot memberi tahu lewat balasan
+  teks.
 
 ## Sticker Studio
 
