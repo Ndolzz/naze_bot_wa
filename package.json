@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "node tests/file-management.test.js && node tests/qr-code.test.js && node tests/sticker-studio.test.js"
+    "test": "node tests/file-management.test.js && node tests/qr-code.test.js && node tests/sticker-studio.test.js && node tests/menu.test.js"
   },
   "engines": {
     "node": ">=20.0.0"
