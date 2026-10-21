@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.10.0
+
+Vector: mengubah gambar menjadi vektor XML Alight Motion, dengan mode isi (siluet area terisi) dan mode garis (satu garis di tengah setiap goresan untuk line art). Mesin vektorisasi, ekstraksi centerline, dan serializer XML diadaptasi dari repositori nazevector tanpa dependensi baru.
+
+- Perintah baru: `.vector` (alias `.vektor`), kategori tools.
+- Kirim atau balas gambar/stiker dengan `.vector`; bot mengirim PNG pratinjau hasil dan berkas `siluet.xml` (XML Alight Motion, dapat diimpor ke aplikasi Alight Motion) sebagai dokumen.
+- Opsi (urutan bebas): `"gelap"`/`"terang"` untuk bagian gambar yang menjadi siluet, angka 1-99 untuk ambang luminansi, `"rendah"`/`"sedang"`/`"tinggi"` untuk tingkat penyederhanaan titik, warna `"#RRGGBB"` untuk warna hasil, dan `"isi"`/`"garis"` untuk bentuk hasil (bawaan `"isi"`).
+- Mode isi: satu layer shape per komponen siluet beserta lubangnya. Mode garis: region dirampingkan (skeletonisasi Zhang-Suen), dirunut menjadi rantai piksel (garis terbuka atau loop tertutup), lalu disederhanakan dengan RDP; tebal garis diambil dari lebar pita hasil ekstraksi dan ditulis pada `path-stroke`.
+- Mesin (`src/lib/naze-vector-engine.js`) diadaptasi dari `js/modules/silhouette.js` dan `js/modules/vectorEngine.js` pada repositori Ndolzz/nazevector dengan algoritme identik: mask biner berbasis luminansi, penelusuran kontur crack boundary (marching squares), penggabungan titik kolinear, dan penyederhanaan Ramer-Douglas-Peucker. Ekstraksi centerline (`src/lib/naze-vector-centerline.js`) diadaptasi dari `js/modules/centerline.js` dan serializer XML (`src/lib/naze-vector-amxml.js`) dari `js/modules/amAdapter.js` dengan struktur keluaran identik.
+- Pembacaan piksel memakai sharp pada resolusi kerja (tanpa memperbesar, sisi terpanjang `config.vector.maxWorkDimension`); pratinjau PNG dirasterisasi dari SVG dan jatuh kembali ke pratinjau mask bila rasterisasi SVG tidak tersedia pada build sharp.
+- Batas ukuran gambar, resolusi kerja, ambang, mode, penyederhanaan, representasi, warna bawaan, dan lebar pratinjau diatur di blok `vector` pada `config.js`.
+- Menu `.menu` menampilkan bagian VECTOR setelah YOUTUBE SEARCH.
+- Pengujian: `npm test` menjalankan `tests/vector.test.js` di samping suite lama.
+
 ## 3.9.0
 
 Pencarian YouTube: mencari video lewat yt-search lalu mengunduh hasilnya sebagai video atau MP3.

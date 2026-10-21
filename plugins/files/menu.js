@@ -2,6 +2,7 @@ import { menuText, BOT_TITLE } from "../../src/lib/naze-file-utils.js";
 import { stickerStudioMenuText } from "../../src/lib/naze-sticker-utils.js";
 import { sosmedDownloaderMenuText } from "../../src/lib/naze-sosdown-utils.js";
 import { ytsearchMenuText } from "../../src/lib/naze-ytsearch-utils.js";
+import { vectorMenuText } from "../../src/lib/naze-vector-utils.js";
 
 export const config = {
   name: "menu",
@@ -22,6 +23,8 @@ export async function handler(m) {
     sosmedDownloaderMenuText(),
     "",
     ytsearchMenuText(),
+    "",
+    vectorMenuText(),
     "",
     menuText(false),
   ].join("\n");
