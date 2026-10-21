@@ -1,18 +1,21 @@
 # Vector NAZE
 
 Dokumentasi teknis fitur Vector (NAZE Bot 3.10.0). Fitur ini mengubah gambar
-atau stiker menjadi siluet vektor SVG. Mesin vektorisasinya diadaptasi dari
-repositori Ndolzz/nazevector (modul `silhouette.js` dan `vectorEngine.js`,
-versi 0.5.1) dengan algoritme yang dipertahankan identik; hanya bagian yang
-bergantung pada kanvas peramban yang diganti dengan pembacaan piksel via sharp.
-Sesuai permintaan, hanya fitur vector yang dibawa: preset animasi, mode warna,
-dan ekspor XML Alight Motion pada aplikasi sumber tidak disertakan.
+atau stiker menjadi vektor XML Alight Motion dengan dua bentuk hasil: mode
+isi (siluet area terisi) dan mode garis (satu garis di tengah setiap goresan,
+untuk line art). Mesin vektorisasi, ekstraksi centerline, dan serializer XML
+diadaptasi dari repositori Ndolzz/nazevector (modul `silhouette.js`,
+`vectorEngine.js`, `centerline.js`, dan `amAdapter.js`, versi 0.5.1) dengan
+algoritme yang dipertahankan identik; hanya bagian yang bergantung pada kanvas
+peramban yang diganti dengan pembacaan piksel via sharp. Sesuai permintaan,
+bot mengirim XML sebagai keluaran; preset animasi dan mode warna asli pada
+aplikasi sumber tidak disertakan.
 
 ## Perintah
 
 | Perintah | Fungsi |
 | --- | --- |
-| `.vector`, `.vektor` | Mengubah gambar/stiker menjadi siluet vektor SVG |
+| `.vector`, `.vektor` | Mengubah gambar/stiker menjadi vektor XML Alight Motion |
 
 Cara pakai: kirim gambar/stiker dengan teks `.vector` atau balas pesan
 gambar/stiker dengan `.vector`. Argumen opsional boleh digabung dalam urutan
@@ -23,20 +26,32 @@ bebas; token yang sama diulang mengambil nilai terakhir.
 | `gelap` / `terang` | bagian gambar yang menjadi siluet | `gelap` |
 | angka 1-99 | ambang luminansi dalam persen | 50 |
 | `rendah` / `sedang` / `tinggi` | tingkat penyederhanaan titik | `sedang` |
-| `#RRGGBB` | warna isi siluet | `#0F172A` |
+| `isi` / `garis` | bentuk hasil: area terisi atau garis tunggal | `isi` |
+| `#RRGGBB` | warna hasil | `#0F172A` |
 
-Contoh: `.vector terang 70 sedang #2563EB`.
+Contoh: `.vector terang 70 sedang #2563EB`; untuk line art: `.vector garis`.
 
-Hasil dikirim dalam dua pesan: PNG pratinjau dengan keterangan statistik
-(dimensi kerja, jumlah komponen, jumlah kontur, jumlah titik, pengaturan),
-lalu berkas `siluet.svg` sebagai dokumen dengan tipe MIME `image/svg+xml`.
+Hasil dikirim dalam dua pesan: PNG pratinjau dengan keterangan statistik,
+lalu berkas `siluet.xml` sebagai dokumen dengan tipe MIME `application/xml`.
+Berkas tersebut adalah scene XML Alight Motion yang dapat diimpor ke aplikasi
+Alight Motion (satu layer shape per komponen pada mode isi, atau per goresan
+pada mode garis).
 
 ## Struktur modul
 
 - `src/lib/naze-vector-engine.js` — mesin murni tanpa dependensi: mask biner
   berbasis luminansi, penelusuran kontur crack boundary (marching squares),
   penggabungan titik kolinear, penyederhanaan Ramer-Douglas-Peucker,
-  dan pembangun dokumen SVG. Diadaptasi dari nazevector.
+  pembangun SVG pratinjau, pelabelan region mask, dan penyederhanaan
+  poliline. Diadaptasi dari `silhouette.js` dan `vectorEngine.js`.
+- `src/lib/naze-vector-centerline.js` — ekstraksi garis tunggal (centerline)
+  untuk mode garis: skeletonisasi Zhang-Suen per region, perunututan rantai
+  piksel (garis terbuka, loop tertutup, segmen pada simpang), penyederhanaan
+  RDP, dan perkiraan lebar pita. Diadaptasi dari `centerline.js`.
+- `src/lib/naze-vector-amxml.js` — serializer XML Alight Motion: membangun
+  dokumen scene dari hasil vektorisasi. Bot memakai representasi `isi` dan
+  `garis`; representasi `kontur` dipertahankan dari sumber agar port tetap
+  setia. Diadaptasi dari `amAdapter.js`.
 - `src/lib/naze-vector-utils.js` — modul murni: resolusi batas, penguraian
   argumen, pemformatan pengaturan, templat pesan, dan teks menu.
 - `src/lib/naze-vector-manager.js` — orkestrator: pembacaan media dari pesan,
@@ -62,22 +77,29 @@ lalu berkas `siluet.svg` sebagai dokumen dengan tipe MIME `image/svg+xml`.
    (alpha < 16) selalu dianggap luar; luminansi (0.2126 R + 0.7152 G +
    0.0722 B) dibandingkan dengan ambang. Mode `gelap` menandai piksel gelap
    sebagai isi, mode `terang` menandai piksel terang sebagai isi.
-6. `vectorizeSilhouette` menelusuri kontur pada grid sudut piksel: setiap
-   crack antar piksel dalam/luar dilalui tepat satu arah, jadi kontur
-   tertutup dan komponen yang bersentuhan diagonal tetap terpisah. Titik
-   kolinear digabung, lalu setiap kontur disederhanakan dengan
-   Ramer-Douglas-Peucker pada dua jangkar (titik terluar dan titik terjauh
-   darinya) agar ring tertutup tidak terpotong pada satu sisi saja.
-   Orientasi kontur luar dan lubang ditegakkan sehingga `fill-rule="evenodd"`
-   menghasilkan lubang yang benar.
-7. Mask kosong bukan kesalahan: bot membalas saran mengubah mode atau
-   ambang.
-8. Pratinjau PNG dirasterisasi dari SVG pada latar putih; bila build sharp
-   yang berjalan tidak mendukung rasterisasi SVG, bot jatuh kembali ke
-   pratinjau yang dibangun langsung dari mask (geometrinya setara dengan
-   hasil sebelum penyederhanaan titik).
-9. Pratinjau dikirim dengan `replyImage` dan keterangan statistik, lalu SVG
-   dikirim dengan `replyDocument`.
+6. `vectorizeSilhouette` menelusuri kontur pada grid sudut piksel (crack
+   boundary), menggabungkan titik kolinear, menyederhanakan setiap kontur
+   dengan Ramer-Douglas-Peucker, dan menegakkan orientasi kontur luar dan
+   lubang. Mask kosong bukan kesalahan: bot membalas saran mengubah mode
+   atau ambang.
+7. Mode isi: `buildAlightMotionXml` mengelompokkan subpath menjadi komponen
+   (satu kontur luar beserta lubang di dalamnya) dan menulis satu `<shape>`
+   (satu layer Alight Motion) per komponen dengan outline pada `<path d>`.
+8. Mode garis: `extractCenterlines` merapatkan region mask per komponen
+   (skeletonisasi Zhang-Suen), merunut rantai piksel menjadi garis terbuka
+   atau loop tertutup, menyederhanakannya dengan RDP, dan memperkirakan
+   lebar goresan dari luas region dibagi panjang skeleton. Bot membalas pesan
+   khusus bila tidak ada goresan yang terekstraksi. `buildAlightMotionXml`
+   menulis satu `<shape>` per garis dengan `<path-stroke>` berisi tebal
+   sesuai lebar pita; path tidak ditutup `Z`.
+9. Warna hasil ditulis sebagai `fillColor` per layer dalam format
+   `#FFRRGGBB` (alpha penuh).
+10. Pratinjau PNG dirasterisasi dari SVG (siluet pada mode isi, garis
+    berstroke pada mode garis) pada latar putih; bila build sharp yang
+    berjalan tidak mendukung rasterisasi SVG, bot jatuh kembali ke pratinjau
+    yang dibangun langsung dari mask.
+11. Pratinjau dikirim dengan `replyImage` dan keterangan statistik, lalu XML
+    dikirim dengan `replyDocument` sebagai `siluet.xml`.
 
 ## Batas
 
@@ -90,7 +112,8 @@ Seluruh batas diatur di blok `vector` pada `config.js`:
 | `defaultThresholdPercent` | 50 | ambang luminansi bawaan (persen) |
 | `defaultMode` | `gelap` | mode bawaan: `gelap` atau `terang` |
 | `defaultSimplification` | `sedang` | penyederhanaan bawaan: `rendah`/`sedang`/`tinggi` |
-| `defaultColor` | `#0F172A` | warna isi siluet bawaan |
+| `defaultRepresentation` | `isi` | bentuk hasil bawaan: `isi` atau `garis` |
+| `defaultColor` | `#0F172A` | warna hasil bawaan |
 | `previewMaxWidth` | 1280 | lebar maksimal PNG pratinjau |
 
 Toleransi penyederhanaan (0.3 / 1.5 / 3.5 piksel) ditetapkan pada
@@ -98,15 +121,24 @@ Toleransi penyederhanaan (0.3 / 1.5 / 3.5 piksel) ditetapkan pada
 
 ## Batasan yang diketahui
 
-1. Hanya mode isi (fill) satu warna yang disertakan; mode garis, kontur
-   berwarna, warna asli, preset animasi, dan ekspor XML Alight Motion pada
-   aplikasi sumber tidak dibawa sesuai permintaan fitur vector saja.
-2. Hasil adalah siluet: detail gradasi dan warna di dalam objek hilang.
-   Kualitas bergantung pada kontras objek dengan latarnya.
-3. Gambar yang sangat besar diproses pada resolusi kerja
-   `maxWorkDimension`, jadi siluet hasilnya mengikuti resolusi tersebut,
-   bukan resolusi asli.
-4. Rasterisasi SVG untuk pratinjau bergantung pada librsvg pada build sharp
+1. Keluaran berupa bentuk statis tanpa keyframe; preset animasi, mode warna
+   asli per komponen, dan preset remix pada aplikasi sumber tidak disertakan
+   sesuai permintaan. Representasi `kontur` (satu layer per kontur) ada pada
+   modul serializer tetapi belum diekspos sebagai opsi perintah.
+2. Mode isi menghasilkan siluet satu warna: detail gradasi dan warna di dalam
+   objek hilang. Kualitas bergantung pada kontras objek dengan latarnya.
+3. Mode garis paling sesuai untuk line art (goresan tipis). Batas dari
+   sumbernya berlaku: duri skeleton pendek dibuang, region sangat kecil
+   (< 2 piksel) dilewati, ujung goresan menyusut maksimal ±1 piksel akibat
+   penipisan, dan tebal per segmen pada simpang memakai tebal rata-rata
+   komponen.
+4. Struktur XML mengikuti parser asli Alight Motion 5.0.273 yang dibuktikan
+   pada sumber untuk mode isi; mode garis (`path-stroke`) menunggu uji
+   lapangan pada perangkat nyata.
+5. Gambar yang sangat besar diproses pada resolusi kerja
+   `maxWorkDimension`, jadi hasil mengikuti resolusi tersebut, bukan
+   resolusi asli.
+6. Rasterisasi SVG untuk pratinjau bergantung pada librsvg pada build sharp
    yang terpasang; bila tidak tersedia, pratinjau dibangun dari mask sebagai
-   fallback. Berkas SVG hasil selalu dapat dibuka perangkat penerima.
-5. Stiker animasi hanya diproses pada bingkai pertamanya.
+   fallback. Berkas XML hasil tidak bergantung pada rasterisasi.
+7. Stiker animasi hanya diproses pada bingkai pertamanya.

@@ -1,7 +1,8 @@
 // Orkestrator fitur Vector NAZE: membaca gambar/stiker dari pesan, menghitung
-// mask siluet pada resolusi kerja, menjalankan mesin vektorisasi murni, lalu
-// mengirim PNG pratinjau dan berkas SVG hasil. Piksel dibaca lewat sharp;
-// mesin vektorisasi itu sendiri murni tanpa dependensi.
+// mask siluet pada resolusi kerja, menjalankan mesin vektorisasi murni (mode
+// isi) atau ekstraksi centerline (mode garis), lalu mengirim PNG pratinjau dan
+// berkas XML Alight Motion hasil. Piksel dibaca lewat sharp; mesin
+// vektorisasi, ekstraksi garis, dan serializer XML murni tanpa dependensi.
 
 import sharp from "sharp";
 import config from "../../config.js";
@@ -12,6 +13,11 @@ import {
   vectorizeSilhouette,
 } from "./naze-vector-engine.js";
 import {
+  extractCenterlines,
+  buildCenterlineSvgDocument,
+} from "./naze-vector-centerline.js";
+import { buildAlightMotionXml } from "./naze-vector-amxml.js";
+import {
   resolveVectorLimits,
   parseVectorArgs,
   parseHexColor,
@@ -21,9 +27,14 @@ import {
   vectorMediaTooLargeMessage,
   vectorInvalidArgsMessage,
   vectorEmptySilhouetteMessage,
+  vectorLineEmptyMessage,
   vectorFailedMessage,
   vectorDoneCaption,
+  vectorLineDoneCaption,
 } from "./naze-vector-utils.js";
+
+const VECTOR_OUTPUT_FILENAME = "siluet.xml";
+const VECTOR_OUTPUT_MIME = "application/xml";
 
 function vectorLimits() {
   return resolveVectorLimits(config.vector);
@@ -185,14 +196,40 @@ async function createVector(m) {
       return;
     }
 
+    let caption;
+    let previewSvg;
+    let xml;
+    if (settings.representation === "garis") {
+      const centerlines = extractCenterlines(maskData, vector);
+      if (centerlines.empty) {
+        await reply(m, vectorLineEmptyMessage(settings));
+        return;
+      }
+      caption = vectorLineDoneCaption(centerlines, settings);
+      previewSvg = buildCenterlineSvgDocument(centerlines, settings.color);
+      xml = buildAlightMotionXml(vector, {
+        representation: "garis",
+        centerlineData: centerlines,
+        color: settings.color,
+      });
+    } else {
+      caption = vectorDoneCaption(vector, settings);
+      previewSvg = vector.svg;
+      xml = buildAlightMotionXml(vector, { color: settings.color });
+    }
+
     const preview = await buildPreviewPng(
-      vector.svg,
+      previewSvg,
       maskData,
       settings,
       limits.previewMaxWidth,
     );
-    await m.replyImage(preview, vectorDoneCaption(vector, settings));
-    await m.replyDocument(Buffer.from(vector.svg), "siluet.svg", "image/svg+xml");
+    await m.replyImage(preview, caption);
+    await m.replyDocument(
+      Buffer.from(xml),
+      VECTOR_OUTPUT_FILENAME,
+      VECTOR_OUTPUT_MIME,
+    );
   } catch (error) {
     logger.error("vector", "vektorisasi gagal: " + error.message);
     await reply(m, vectorFailedMessage("terjadi kesalahan saat memproses gambar"));

@@ -11,6 +11,7 @@ import { messageHeader, formatBytes } from "./naze-file-utils.js";
 
 const VECTOR_MODES = ["gelap", "terang"];
 const VECTOR_SIMPLIFICATIONS = ["rendah", "sedang", "tinggi"];
+const VECTOR_REPRESENTATIONS = ["isi", "garis"];
 
 const DEFAULT_VECTOR_LIMITS = {
   maxMediaBytes: 15728640, // 15 MB ukuran maksimal gambar sumber
@@ -18,6 +19,7 @@ const DEFAULT_VECTOR_LIMITS = {
   defaultThresholdPercent: 50, // ambang luminansi bawaan (persen)
   defaultMode: "gelap", // objek gelap menjadi siluet
   defaultSimplification: "sedang", // penyederhanaan titik bawaan
+  defaultRepresentation: "isi", // bentuk hasil: area terisi atau garis tunggal
   defaultColor: "#0F172A", // warna isi siluet bawaan
   previewMaxWidth: 1280, // lebar maksimal PNG pratinjau
 };
@@ -38,6 +40,9 @@ function resolveVectorLimits(overrides = {}) {
   if (VECTOR_SIMPLIFICATIONS.includes(overrides?.defaultSimplification)) {
     merged.defaultSimplification = overrides.defaultSimplification;
   }
+  if (VECTOR_REPRESENTATIONS.includes(overrides?.defaultRepresentation)) {
+    merged.defaultRepresentation = overrides.defaultRepresentation;
+  }
   if (isColorHex(overrides?.defaultColor)) {
     merged.defaultColor = overrides.defaultColor.toUpperCase();
   }
@@ -57,13 +62,14 @@ function isColorHex(value) {
  * dan token terakhir menang bila ada pengulangan.
  * @param {string} text - Teks setelah perintah
  * @param {Object} limits - Batas hasil resolveVectorLimits
- * @returns {Object} { mode, thresholdPercent, simplification, color, invalid }
+ * @returns {Object} { mode, thresholdPercent, simplification, representation, color, invalid }
  */
 function parseVectorArgs(text, limits) {
   const settings = {
     mode: limits.defaultMode,
     thresholdPercent: limits.defaultThresholdPercent,
     simplification: limits.defaultSimplification,
+    representation: limits.defaultRepresentation,
     color: limits.defaultColor,
     invalid: [],
   };
@@ -76,6 +82,10 @@ function parseVectorArgs(text, limits) {
     }
     if (VECTOR_SIMPLIFICATIONS.includes(lower)) {
       settings.simplification = lower;
+      continue;
+    }
+    if (VECTOR_REPRESENTATIONS.includes(lower)) {
+      settings.representation = lower;
       continue;
     }
     if (isColorHex(token)) {
@@ -96,11 +106,13 @@ function parseVectorArgs(text, limits) {
 
 /**
  * Merangkai ringkasan pengaturan untuk keterangan hasil.
- * @returns {string} Contoh: "mode gelap, ambang 50%, penyederhanaan sedang, warna #0F172A"
+ * @returns {string} Contoh: "representasi isi, mode gelap, ambang 50%, penyederhanaan sedang, warna #0F172A"
  */
 function formatVectorSettings(settings) {
   return (
-    "mode " +
+    "representasi " +
+    settings.representation +
+    ", mode " +
     settings.mode +
     ", ambang " +
     settings.thresholdPercent +
@@ -134,9 +146,9 @@ function vectorMenuText() {
     "*VECTOR*",
     "",
     '1. ".vector" / ".vektor"',
-    "   Fungsi: mengubah gambar menjadi siluet vektor SVG",
+    "   Fungsi: mengubah gambar menjadi vektor XML Alight Motion",
     "   Cara pakai: balas gambar atau stiker dengan \".vector\", atau kirim gambar dengan teks \".vector\"",
-    "   Opsi: \"terang\" (objek terang), angka 1-99 (ambang), \"rendah\"/\"sedang\"/\"tinggi\" (penyederhanaan), \"#RRGGBB\" (warna)",
+    "   Opsi: \"terang\" (objek terang), angka 1-99 (ambang), \"rendah\"/\"sedang\"/\"tinggi\" (penyederhanaan), \"#RRGGBB\" (warna), \"garis\" (garis tunggal per goresan, untuk line art)",
   ].join("\n");
 }
 
@@ -148,7 +160,7 @@ function vectorGuideMessage(limits) {
   return [
     messageHeader("VECTOR"),
     "",
-    "Kirim atau balas gambar/stiker dengan \".vector\" untuk mengubahnya menjadi siluet vektor SVG.",
+    'Kirim atau balas gambar/stiker dengan ".vector" untuk mengubahnya menjadi vektor XML Alight Motion.',
     "",
     "Opsi yang tersedia (boleh digabung, urutan bebas):",
     "",
@@ -161,11 +173,17 @@ function vectorGuideMessage(limits) {
     '3. "rendah", "sedang", atau "tinggi" - tingkat penyederhanaan titik (bawaan: ' +
       limits.defaultSimplification +
       ")",
-    "4. Warna heksadesimal, contoh \"#2563EB\" (bawaan: " +
+    '4. Warna heksadesimal, contoh "#2563EB" (bawaan: ' +
       limits.defaultColor +
+      ")",
+    '5. "isi" atau "garis" - bentuk hasil: area terisi, atau satu garis di tengah setiap goresan untuk line art (bawaan: ' +
+      limits.defaultRepresentation +
       ")",
     "",
     "Contoh: .vector terang 70 sedang #2563EB",
+    "Contoh line art: .vector garis",
+    "",
+    'Hasil dikirim sebagai berkas "siluet.xml" (XML Alight Motion) yang dapat diimpor ke aplikasi Alight Motion.',
   ].join("\n");
 }
 
@@ -201,7 +219,7 @@ function vectorInvalidArgsMessage(invalidTokens) {
     "",
     "Argumen tidak dikenali: " + shown + ".",
     "",
-    'Gunakan "gelap"/"terang", angka 1-99, "rendah"/"sedang"/"tinggi", atau warna "#RRGGBB".',
+    'Gunakan "gelap"/"terang", angka 1-99, "rendah"/"sedang"/"tinggi", "isi"/"garis", atau warna "#RRGGBB".',
     "",
     "Contoh: .vector terang 70 sedang #2563EB",
   ].join("\n");
@@ -239,13 +257,45 @@ function vectorDoneCaption(vectorData, settings) {
     "Titik: " + vectorData.vertexCount,
     "Pengaturan: " + formatVectorSettings(settings),
     "",
-    'Berkas "siluet.svg" dikirim pada pesan berikutnya.',
+    'Berkas "siluet.xml" (XML Alight Motion) dikirim pada pesan berikutnya.',
+  ].join("\n");
+}
+
+function vectorLineDoneCaption(centerlineData, settings) {
+  const vertexCount = centerlineData.lines.reduce(
+    (count, line) => count + line.points.length,
+    0
+  );
+  return [
+    "Garis vektor berhasil diekstraksi.",
+    "",
+    "Ukuran kerja: " + centerlineData.width + " x " + centerlineData.height + " piksel",
+    "Garis: " + centerlineData.lines.length,
+    "Titik: " + vertexCount,
+    "Pengaturan: " + formatVectorSettings(settings),
+    "",
+    'Berkas "siluet.xml" (XML Alight Motion) dikirim pada pesan berikutnya.',
+  ].join("\n");
+}
+
+function vectorLineEmptyMessage(settings) {
+  return [
+    messageHeader("VECTOR"),
+    "",
+    "Tidak ada goresan garis yang dapat diekstraksi dari gambar ini.",
+    "",
+    "Mode garis paling sesuai untuk line art: goresan-goresan tipis di atas latar terang.",
+    "",
+    "Pengaturan saat ini: " + formatVectorSettings(settings) + ".",
+    "",
+    'Coba gunakan "isi", atau ubah mode "gelap"/"terang" dan angka ambang agar goresan terbaca.',
   ].join("\n");
 }
 
 export {
   VECTOR_MODES,
   VECTOR_SIMPLIFICATIONS,
+  VECTOR_REPRESENTATIONS,
   DEFAULT_VECTOR_LIMITS,
   resolveVectorLimits,
   parseVectorArgs,
@@ -260,4 +310,6 @@ export {
   vectorEmptySilhouetteMessage,
   vectorFailedMessage,
   vectorDoneCaption,
+  vectorLineDoneCaption,
+  vectorLineEmptyMessage,
 };

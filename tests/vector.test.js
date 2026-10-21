@@ -1,7 +1,9 @@
 // Pengujian Vector NAZE.
 // Bagian murni menguji penguraian argumen, resolusi batas, warna, templat
-// pesan, dan mesin vektorisasi (mask, kontur, SVG) pada src/lib/naze-vector-utils.js
-// dan src/lib/naze-vector-engine.js tanpa dependensi.
+// pesan, mesin vektorisasi (mask, kontur, SVG), ekstraksi centerline, dan
+// serializer XML Alight Motion pada src/lib/naze-vector-utils.js,
+// src/lib/naze-vector-engine.js, src/lib/naze-vector-centerline.js, dan
+// src/lib/naze-vector-amxml.js tanpa dependensi.
 // Bagian integrasi menguji alur penuh dengan sharp, registrasi plugin, dan
 // menu; otomatis dilewati bila dependensi belum terpasang.
 // Jalankan dengan: npm test
@@ -10,6 +12,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import * as utils from "../src/lib/naze-vector-utils.js";
 import * as engine from "../src/lib/naze-vector-engine.js";
+import * as centerline from "../src/lib/naze-vector-centerline.js";
+import * as amxml from "../src/lib/naze-vector-amxml.js";
 
 const EMOJI_PATTERN = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/u;
 
@@ -23,6 +27,7 @@ test("parseVectorArgs memakai nilai bawaan tanpa argumen", () => {
     mode: "gelap",
     thresholdPercent: 50,
     simplification: "sedang",
+    representation: "isi",
     color: "#0F172A",
     invalid: [],
   });
@@ -37,6 +42,23 @@ test("parseVectorArgs menerima opsi dalam urutan bebas", () => {
   assert.equal(settings.simplification, "rendah");
   assert.equal(settings.color, "#2563EB");
   assert.equal(settings.invalid.length, 0);
+});
+
+test("parseVectorArgs mengenali representasi isi dan garis", () => {
+  const limits = utils.resolveVectorLimits();
+  const garis = utils.parseVectorArgs("garis", limits);
+  assert.equal(garis.representation, "garis");
+
+  const mixed = utils.parseVectorArgs("GARIS terang", limits);
+  assert.equal(mixed.representation, "garis", "token tidak peka kapitalisasi");
+  assert.equal(mixed.mode, "terang");
+
+  const back = utils.parseVectorArgs("garis isi", limits);
+  assert.equal(back.representation, "isi", "token terakhir menang");
+
+  const unknown = utils.parseVectorArgs("vektorrr", limits);
+  assert.equal(unknown.representation, "isi", "token tidak dikenali tidak boleh mengubah representasi");
+  assert.deepEqual(unknown.invalid, ["vektorrr"]);
 });
 
 test("parseVectorArgs tidak membedakan kapitalisasi", () => {
@@ -70,6 +92,7 @@ test("resolveVectorLimits menerima nilai sah dan mengabaikan nilai tidak sah", (
   assert.equal(defaults.defaultThresholdPercent, 50);
   assert.equal(defaults.defaultMode, "gelap");
   assert.equal(defaults.defaultSimplification, "sedang");
+  assert.equal(defaults.defaultRepresentation, "isi");
   assert.equal(defaults.defaultColor, "#0F172A");
   assert.equal(defaults.previewMaxWidth, 1280);
 
@@ -79,6 +102,7 @@ test("resolveVectorLimits menerima nilai sah dan mengabaikan nilai tidak sah", (
     defaultThresholdPercent: 70,
     defaultMode: "terang",
     defaultSimplification: "tinggi",
+    defaultRepresentation: "garis",
     defaultColor: "#2563eb",
     previewMaxWidth: 640,
   });
@@ -87,6 +111,7 @@ test("resolveVectorLimits menerima nilai sah dan mengabaikan nilai tidak sah", (
   assert.equal(custom.defaultThresholdPercent, 70);
   assert.equal(custom.defaultMode, "terang");
   assert.equal(custom.defaultSimplification, "tinggi");
+  assert.equal(custom.defaultRepresentation, "garis");
   assert.equal(custom.defaultColor, "#2563EB", "warna harus dinormalkan ke huruf besar");
   assert.equal(custom.previewMaxWidth, 640);
 
@@ -96,6 +121,7 @@ test("resolveVectorLimits menerima nilai sah dan mengabaikan nilai tidak sah", (
     defaultThresholdPercent: 0,
     defaultMode: "birus",
     defaultSimplification: "ekstrem",
+    defaultRepresentation: "kontur",
     defaultColor: "hijau",
     previewMaxWidth: -1,
   });
@@ -104,6 +130,7 @@ test("resolveVectorLimits menerima nilai sah dan mengabaikan nilai tidak sah", (
   assert.equal(invalid.defaultThresholdPercent, 50);
   assert.equal(invalid.defaultMode, "gelap");
   assert.equal(invalid.defaultSimplification, "sedang");
+  assert.equal(invalid.defaultRepresentation, "isi");
   assert.equal(invalid.defaultColor, "#0F172A");
   assert.equal(invalid.previewMaxWidth, 1280);
 });
@@ -128,9 +155,10 @@ test("formatVectorSettings merangkai pengaturan", () => {
       mode: "terang",
       thresholdPercent: 70,
       simplification: "rendah",
+      representation: "garis",
       color: "#2563EB",
     }),
-    "mode terang, ambang 70%, penyederhanaan rendah, warna #2563EB",
+    "representasi garis, mode terang, ambang 70%, penyederhanaan rendah, warna #2563EB",
   );
 });
 
@@ -149,6 +177,8 @@ test("templat pesan memuat isi yang jelas dan tanpa emoji", () => {
   assert.ok(guide.includes(".vector"));
   assert.ok(guide.includes("gelap"));
   assert.ok(guide.includes("#2563EB"));
+  assert.ok(guide.includes('"isi" atau "garis"'));
+  assert.ok(guide.includes('"siluet.xml"'));
   assert.equal(EMOJI_PATTERN.test(guide), false);
 
   const unsupported = utils.vectorMediaUnsupportedMessage("video");
@@ -163,6 +193,7 @@ test("templat pesan memuat isi yang jelas dan tanpa emoji", () => {
   const invalidArgs = utils.vectorInvalidArgsMessage(["foo", "bar"]);
   assert.ok(invalidArgs.includes('"foo"'));
   assert.ok(invalidArgs.includes('"bar"'));
+  assert.ok(invalidArgs.includes('"isi"/"garis"'));
 
   const settings = utils.parseVectorArgs("terang 70", limits);
   const empty = utils.vectorEmptySilhouetteMessage(settings);
@@ -177,8 +208,26 @@ test("templat pesan memuat isi yang jelas dan tanpa emoji", () => {
     settings,
   );
   assert.ok(caption.includes("32 x 32 piksel"));
-  assert.ok(caption.includes('"siluet.svg"'));
+  assert.ok(caption.includes('"siluet.xml"'));
+  assert.ok(caption.includes("XML Alight Motion"));
   assert.equal(EMOJI_PATTERN.test(caption), false);
+
+  const garisSettings = utils.parseVectorArgs("garis", limits);
+  const lineCaption = utils.vectorLineDoneCaption(
+    { width: 32, height: 32, lines: [{ points: [[0, 0], [1, 1]] }, { points: [[2, 2]] }] },
+    garisSettings,
+  );
+  assert.ok(lineCaption.includes("Garis vektor berhasil diekstraksi."));
+  assert.ok(lineCaption.includes("Garis: 2"));
+  assert.ok(lineCaption.includes("Titik: 3"));
+  assert.ok(lineCaption.includes('"siluet.xml"'));
+  assert.equal(EMOJI_PATTERN.test(lineCaption), false);
+
+  const lineEmpty = utils.vectorLineEmptyMessage(garisSettings);
+  assert.ok(lineEmpty.includes("Tidak ada goresan garis"));
+  assert.ok(lineEmpty.includes("line art"));
+  assert.ok(lineEmpty.includes("representasi garis"));
+  assert.equal(EMOJI_PATTERN.test(lineEmpty), false);
 });
 
 // ---------------------------------------------------------------------------
@@ -328,6 +377,188 @@ test("sanitizeColorHex menormalkan warna dan jatuh ke bawaan", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Bagian 2b: pembantu engine, ekstraksi centerline, dan XML Alight Motion
+// ---------------------------------------------------------------------------
+
+test("simplifyPolyline menyederhanakan poliline terbuka dengan ujung dipertahankan", () => {
+  const simplified = engine.simplifyPolyline([[0, 0], [1, 0.1], [2, 0]], 0.5);
+  assert.deepEqual(simplified, [[0, 0], [2, 0]]);
+  assert.deepEqual(engine.simplifyPolyline([], 1), []);
+  assert.deepEqual(engine.simplifyPolyline([[1, 1]], 1), [[1, 1]]);
+});
+
+test("labelMaskRegions memberi label per region tersambung", () => {
+  const mask = new Uint8ClampedArray(9);
+  mask[0] = 255;
+  mask[1] = 255;
+  mask[8] = 255;
+  const labels = engine.labelMaskRegions({ mask, width: 3, height: 3 });
+  assert.equal(labels[0], 1);
+  assert.equal(labels[1], 1, "piksel tersambung 4-tetangga memakai label sama");
+  assert.equal(labels[8], 2, "region terpisah memakai label berbeda");
+  assert.equal(labels[4], 0, "piksel luar tidak berlabel");
+  assert.throws(() => engine.labelMaskRegions(null));
+  assert.throws(() =>
+    engine.labelMaskRegions({ mask: new Uint8ClampedArray(4), width: 3, height: 3 }),
+  );
+});
+
+test("findRegionLabel menemukan label region di sekitar titik kontur", () => {
+  const mask = new Uint8ClampedArray(9).fill(255);
+  const labels = engine.labelMaskRegions({ mask, width: 3, height: 3 });
+  assert.equal(engine.findRegionLabel({ mask, width: 3, height: 3 }, labels, [0, 0]), 1);
+  assert.equal(engine.findRegionLabel({ mask, width: 3, height: 3 }, labels, [1, 1]), 1);
+  assert.equal(engine.findRegionLabel({ mask, width: 3, height: 3 }, labels, null), 0);
+  assert.equal(engine.findRegionLabel({ mask, width: 3, height: 3 }, labels, "birus"), 0);
+});
+
+function lineArtMask() {
+  // Goresan horizontal setebal satu piksel pada 7x3 mask.
+  const mask = new Uint8ClampedArray(21);
+  for (let x = 1; x < 6; x += 1) {
+    mask[1 * 7 + x] = 255;
+  }
+  return { mask, width: 7, height: 3 };
+}
+
+test("extractCenterlines mengekstraksi goresan tunggal dari line art", () => {
+  const maskData = lineArtMask();
+  const vector = engine.vectorizeSilhouette(maskData, { simplification: "sedang" });
+  const result = centerline.extractCenterlines(maskData, vector);
+  assert.equal(result.ok, true);
+  assert.equal(result.empty, false);
+  assert.equal(result.lines.length, 1, "satu goresan menjadi satu garis");
+  const line = result.lines[0];
+  assert.equal(line.closed, false);
+  assert.ok(line.points.length >= 2);
+  assert.ok(line.width > 0);
+  assert.equal(line.componentIndex, 0);
+  assert.equal(result.width, 7);
+  assert.equal(result.height, 3);
+});
+
+test("extractCenterlines mengenali loop tertutup pada bingkai berongga", () => {
+  // Bingkai persegi setebal satu piksel pada 7x7 mask: skeletonnya stabil
+  // dan seluruh pikselnya berderajat 2 sehingga dirunut sebagai loop tertutup.
+  const mask = new Uint8ClampedArray(49);
+  for (let x = 0; x < 7; x += 1) {
+    mask[x] = 255;
+    mask[6 * 7 + x] = 255;
+    mask[x * 7] = 255;
+    mask[x * 7 + 6] = 255;
+  }
+  const maskData = { mask, width: 7, height: 7 };
+  const vector = engine.vectorizeSilhouette(maskData, { simplification: "sedang" });
+  const result = centerline.extractCenterlines(maskData, vector);
+  assert.equal(result.empty, false);
+  assert.ok(result.lines.length >= 1);
+  assert.ok(
+    result.lines.some((line) => line.closed === true),
+    "bingkai berongga dirunut sebagai loop tertutup",
+  );
+});
+
+test("extractCenterlines menolak masukan tidak valid", () => {
+  const maskData = lineArtMask();
+  const vector = engine.vectorizeSilhouette(maskData, { simplification: "sedang" });
+  assert.throws(() => centerline.extractCenterlines(null, vector));
+  assert.throws(() => centerline.extractCenterlines(maskData, null));
+  assert.throws(() => centerline.extractCenterlines(maskData, { subpaths: null }));
+});
+
+test("buildCenterlineSvgDocument membangun pratinjau garis", () => {
+  const maskData = lineArtMask();
+  const vector = engine.vectorizeSilhouette(maskData, { simplification: "sedang" });
+  const result = centerline.extractCenterlines(maskData, vector);
+  const svg = centerline.buildCenterlineSvgDocument(result, "#2563EB");
+  assert.ok(svg.includes("<svg"));
+  assert.ok(svg.includes('viewBox="0 0 7 3"'));
+  assert.ok(svg.includes('stroke="#2563EB"'));
+  assert.ok(svg.includes("<path"));
+  assert.equal(centerline.buildCenterlineSvgDocument({ lines: [] }, "#2563EB"), "");
+  assert.equal(centerline.buildCenterlineSvgDocument(null, "#2563EB"), "");
+});
+
+function ringVector() {
+  return engine.vectorizeSilhouette(ringMask5x5(), { simplification: "sedang" });
+}
+
+test("buildAlightMotionXml menghasilkan scene isi dari siluet", () => {
+  const xml = amxml.buildAlightMotionXml(ringVector(), {
+    color: "#2563EB",
+    modifiedTime: 0,
+  });
+  assert.ok(xml.startsWith("<?xml"));
+  assert.ok(xml.includes('<scene title="Naze Vector Silhouette" width="5" height="5"'));
+  assert.ok(xml.includes('modifiedTime="0"'));
+  assert.ok(xml.includes('fillColor value="#FF2563EB"'), "warna #RRGGBB diberi alpha FF");
+  assert.ok(xml.includes("<shape id=\"1\""));
+  assert.ok(/<path d="M [^"]*Z"\/><\/shape>/.test(xml), "path isi ditutup Z");
+  assert.ok(!xml.includes("<path-stroke"), "mode isi tidak memakai path-stroke");
+  assert.ok(xml.includes("<fillColor"));
+});
+
+test("buildAlightMotionXml menghasilkan scene garis dari centerline", () => {
+  const maskData = lineArtMask();
+  const vector = engine.vectorizeSilhouette(maskData, { simplification: "sedang" });
+  const lines = centerline.extractCenterlines(maskData, vector);
+  const xml = amxml.buildAlightMotionXml(vector, {
+    representation: "garis",
+    centerlineData: lines,
+    color: "#0F172A",
+    modifiedTime: 0,
+  });
+  assert.ok(xml.startsWith("<?xml"));
+  assert.ok(xml.includes("<path-stroke"));
+  assert.ok(xml.includes('direction="centered"'));
+  assert.ok(xml.includes("<size value="), "tebal garis dari lebar pita");
+  assert.ok(xml.includes('fillColor value="#FF0F172A"'));
+  assert.ok(!/<path d="[^"]*Z/.test(xml), "path garis tidak ditutup Z");
+  assert.ok(xml.includes("<shape id=\"1\""));
+});
+
+test("buildAlightMotionXml menolak masukan tidak valid", () => {
+  assert.throws(() => amxml.buildAlightMotionXml(null, {}));
+  assert.throws(() =>
+    amxml.buildAlightMotionXml({ width: 5, height: 5, subpaths: [] }, {}),
+  );
+  assert.throws(() =>
+    amxml.buildAlightMotionXml(ringVector(), { representation: "birus" }),
+  );
+  assert.throws(() =>
+    amxml.buildAlightMotionXml(ringVector(), { componentColors: ["#FFFFFF", "#000000"] }),
+  );
+  assert.throws(() =>
+    amxml.buildAlightMotionXml(ringVector(), { title: "  " }),
+  );
+  assert.throws(() =>
+    amxml.buildAlightMotionXml(ringVector(), { totalTime: 0 }),
+  );
+  assert.throws(() =>
+    amxml.buildAlightMotionXml(ringVector(), { fps: "nol" }),
+  );
+  assert.throws(() =>
+    amxml.buildAlightMotionXml(ringVector(), { representation: "garis" }),
+    /centerline/,
+  );
+  assert.throws(() =>
+    amxml.buildAlightMotionXml(ringVector(), {
+      representation: "garis",
+      centerlineData: { lines: [] },
+    }),
+  );
+});
+
+test("buildAlightMotionXml memakai warna bawaan bila warna tidak diberikan", () => {
+  const xml = amxml.buildAlightMotionXml(ringVector(), { modifiedTime: 0 });
+  assert.ok(xml.includes('fillColor value="#FF3B82F6"'));
+  assert.ok(xml.includes('fps="30"'));
+  assert.ok(xml.includes('totalTime="5000"'));
+  assert.ok(xml.includes("com.alightcreative.motion"));
+});
+
+
+// ---------------------------------------------------------------------------
 // Bagian 3: integrasi (memerlukan npm install; dilewati bila dependensi
 // belum tersedia)
 // ---------------------------------------------------------------------------
@@ -409,7 +640,7 @@ if (!depsReady) {
     assert.equal(sent.images.length, 0);
   });
 
-  test("createVector mengubah gambar menjadi SVG ujung ke ujung", async () => {
+  test("createVector mengubah gambar menjadi XML Alight Motion ujung ke ujung", async () => {
     const png = await squarePng(32, 8, 24);
     const { m, sent } = fakeMessage(png, "");
     await manager.createVector(m);
@@ -423,16 +654,46 @@ if (!depsReady) {
     assert.ok(sent.images[0].caption.includes("Siluet vektor berhasil dibuat."));
     assert.ok(sent.images[0].caption.includes("32 x 32 piksel"));
     assert.ok(sent.images[0].caption.includes("Komponen: 1"));
-    assert.ok(sent.images[0].caption.includes("Pengaturan: mode gelap, ambang 50%"));
+    assert.ok(sent.images[0].caption.includes("Pengaturan: representasi isi, mode gelap, ambang 50%"));
 
-    assert.equal(sent.documents.length, 1, "satu berkas SVG harus dikirim");
-    assert.equal(sent.documents[0].filename, "siluet.svg");
-    assert.equal(sent.documents[0].mime, "image/svg+xml");
-    const svg = sent.documents[0].buffer.toString("utf-8");
-    assert.ok(svg.includes("<svg"));
-    assert.ok(svg.includes('viewBox="0 0 32 32"'));
-    assert.ok(svg.includes('fill="#0F172A"'));
+    assert.equal(sent.documents.length, 1, "satu berkas XML harus dikirim");
+    assert.equal(sent.documents[0].filename, "siluet.xml");
+    assert.equal(sent.documents[0].mime, "application/xml");
+    const xml = sent.documents[0].buffer.toString("utf-8");
+    assert.ok(xml.startsWith("<?xml"));
+    assert.ok(xml.includes('<scene title="Naze Vector Silhouette" width="32" height="32"'));
+    assert.ok(xml.includes('fillColor value="#FF0F172A"'));
+    assert.ok(/<path d="M [^"]*Z"\/><\/shape>/.test(xml), "path isi ditutup Z");
     assert.equal(EMOJI_PATTERN.test(sent.images[0].caption), false);
+  });
+
+  test("createVector mode garis mengubah line art menjadi XML", async () => {
+    const pixels = Buffer.alloc(32 * 32 * 3, 255);
+    for (let x = 4; x < 28; x += 1) {
+      const index = (16 * 32 + x) * 3;
+      pixels[index] = 0;
+      pixels[index + 1] = 0;
+      pixels[index + 2] = 0;
+    }
+    const png = await sharp(pixels, { raw: { width: 32, height: 32, channels: 3 } })
+      .png()
+      .toBuffer();
+    const { m, sent } = fakeMessage(png, "garis");
+    await manager.createVector(m);
+
+    assert.equal(sent.images.length, 1, "satu pratinjau PNG harus dikirim");
+    assert.ok(sent.images[0].caption.includes("Garis vektor berhasil diekstraksi."));
+    assert.ok(sent.images[0].caption.includes("Garis: 1"));
+    assert.ok(sent.images[0].caption.includes("Pengaturan: representasi garis, mode gelap, ambang 50%"));
+
+    assert.equal(sent.documents.length, 1, "satu berkas XML harus dikirim");
+    assert.equal(sent.documents[0].filename, "siluet.xml");
+    assert.equal(sent.documents[0].mime, "application/xml");
+    const xml = sent.documents[0].buffer.toString("utf-8");
+    assert.ok(xml.startsWith("<?xml"));
+    assert.ok(xml.includes("<path-stroke"), "mode garis menulis path-stroke");
+    assert.ok(xml.includes('direction="centered"'));
+    assert.ok(!/<path d="[^"]*Z/.test(xml), "path garis tidak ditutup Z");
   });
 
   test("createVector menolak gambar tanpa objek", async () => {
