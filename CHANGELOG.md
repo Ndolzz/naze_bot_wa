@@ -12,6 +12,7 @@ Banner NAZE, menu dinamis, dan fitur pencarian, downloader, serta vektorisasi Al
 - Perintah baru: `.amvector` mengubah gambar menjadi siluet vektor XML Alight Motion. Mode `isi`, `garis` (line art), `kontur`; warna global `#rrggbb` atau sampel warna asli (`asli`); siluet `gelap`/`terang` dengan ambang 1-99. Modul pipeline murni dipindahkan dari repositori nazevector ke `src/lib/vector/` tanpa perubahan, diorkestrasi `src/lib/naze-vector.js` (sharp untuk dekode gambar, maks 15 MB).
 - Plugin `plugins/game/pixelfishing.js` dipindahkan ke format plugin v3.7.0 (ekspor `config` + `handler`) sehingga kini benar-benar dimuat oleh plugin loader; isi game (GAME_HTML) tetap identik byte demi byte dan tampil sebagai pesan interaktif (richResponseMessage) dengan reaksi 🎣.
 - Banner otomatis dapat diganti kapan saja: letakkan berkas gambar asli pada `assets/image/naze-logo.jpg` lalu restart bot.
+- Dokumentasi: README ditulis ulang dengan ringkasan fitur dan struktur per kategori fitur; ditambahkan `docs/SDD-SOSDOWN.md`, Software Design Document fitur sosdown yang menjelaskan arsitektur, kontrak data, strategi unduhan, penanganan kesalahan, dan titik perawatan.
 
 ## 3.7.0
 
