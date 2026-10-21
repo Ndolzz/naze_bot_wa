@@ -69,6 +69,8 @@ tempat umum.
 | `.ytsearch`, `.yts` | Mencari video di YouTube |
 | `.ytmp3` | Mengunduh audio YouTube (MP3, maks 64 MB) |
 | `.ytmp4` | Mengunduh video YouTube (MP4, maks 64 MB) |
+| `.tiktok`, `.tt` | Mengunduh video atau foto TikTok (maks 64 MB per berkas) |
+| `.ig`, `.instagram` | Mengunduh video atau foto Instagram publik (maks 64 MB per berkas) |
 | `.amvector` | Mengubah gambar menjadi siluet vektor XML Alight Motion |
 | `.pixelfishing`, `.pixelfish`, `.pfish` | Game memancing Pixel Fishing (pesan interaktif) |
 
@@ -92,9 +94,20 @@ restart bot.
 - `.ytmp4`: mengunduh video YouTube sebagai MP4. Kualitas opsional `144`,
   `360` (bawaan), `480`, `720`, atau `1080`. Contoh:
   `.ytmp4 https://youtu.be/xxxx 480`.
-- Kedua downloader membatasi ukuran berkas 64 MB agar aman dikirim sebagai
-  pesan WhatsApp; kata kunci otomatis diubah menjadi video pertama hasil
-  pencarian.
+- Kedua downloader YouTube membatasi ukuran berkas 64 MB agar aman dikirim
+  sebagai pesan WhatsApp; kata kunci otomatis diubah menjadi video pertama
+  hasil pencarian.
+- `.tiktok` / `.tt`: mengunduh video atau foto TikTok. Contoh:
+  `.tiktok https://vt.tiktok.com/xxxx`. Opsi kualitas `hd` (bawaan, tanpa
+  watermark), `sd` (berkas lebih kecil), atau `wm` (versi asli dengan
+  watermark). Postingan foto dikirim utuh, maksimal 10 media per postingan.
+- `.ig` / `.instagram`: mengunduh video, foto, atau carousel Instagram dari
+  konten publik. Contoh: `.ig https://www.instagram.com/reel/xxxx`.
+  Postingan privat tidak dapat diunduh.
+- Resolver TikTok dan Instagram dipindahkan dari repositori naze-sosdown ke
+  `src/lib/sosdown/` dan diorkestrasi oleh `src/lib/naze-sosdown.js`; seluruh
+  proses berjalan mandiri di dalam bot dengan fetch bawaan Node.js 20 tanpa
+  server tambahan. Ukuran berkas dibatasi 64 MB per media.
 
 ## Vektorisasi Alight Motion
 
