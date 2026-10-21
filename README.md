@@ -2,6 +2,16 @@
 
 Bot WhatsApp multi-device dengan sistem plugin modular. Dipelihara oleh **Nendi**.
 
+## Ringkasan fitur
+
+- Banner NAZE otomatis pada setiap balasan teks bot.
+- Pengelolaan berkas: TXT, PDF, ZIP, dan kode QR langsung dari chat.
+- Sticker Studio: stiker, BRAT statis dan animasi, konversi media, dan koleksi stiker.
+- Game Pixel Fishing yang tampil sebagai pesan interaktif.
+- Pencarian dan downloader: YouTube (audio/video), TikTok, dan Instagram.
+- Vektorisasi gambar menjadi proyek XML Alight Motion.
+- Menu `.menu` dinamis yang selalu mengikuti plugin yang terpasang.
+
 ## Kebutuhan
 
 - Node.js 20 atau lebih baru
@@ -74,6 +84,10 @@ tempat umum.
 | `.amvector` | Mengubah gambar menjadi siluet vektor XML Alight Motion |
 | `.pixelfishing`, `.pixelfish`, `.pfish` | Game memancing Pixel Fishing (pesan interaktif) |
 
+Menu `.menu` di dalam bot bersifat dinamis: seluruh plugin yang terpasang
+dikelompokkan otomatis per kategori (Pengelolaan File, Sticker Studio, Game,
+Pencarian, Downloader, Alat) beserta nama, alias, dan deskripsinya.
+
 ## Banner NAZE
 
 Setiap balasan teks bot otomatis menyertai banner NAZE. Teks pendek (maks 1024
@@ -84,53 +98,21 @@ banner dibuat otomatis oleh `src/lib/naze-banner.js`. Untuk memakai banner
 buatan sendiri, letakkan berkas gambar pada `assets/image/naze-logo.jpg` lalu
 restart bot.
 
-## Pencarian dan Downloader
+## Pengelolaan file
 
-- `.ytsearch` / `.yts`: mencari video di YouTube. Contoh: `.yts musik lofi`.
-  Menampilkan 6 hasil berisi judul, durasi, jumlah tayangan, dan tautan.
-- `.ytmp3`: mengunduh audio YouTube sebagai MP3. Menerima tautan atau kata
-  kunci, diikuti kualitas opsional `92`, `128` (bawaan), `256`, atau `320`.
-  Contoh: `.ytmp3 https://youtu.be/xxxx 128`.
-- `.ytmp4`: mengunduh video YouTube sebagai MP4. Kualitas opsional `144`,
-  `360` (bawaan), `480`, `720`, atau `1080`. Contoh:
-  `.ytmp4 https://youtu.be/xxxx 480`.
-- Kedua downloader YouTube membatasi ukuran berkas 64 MB agar aman dikirim
-  sebagai pesan WhatsApp; kata kunci otomatis diubah menjadi video pertama
-  hasil pencarian.
-- `.tiktok` / `.tt`: mengunduh video atau foto TikTok. Contoh:
-  `.tiktok https://vt.tiktok.com/xxxx`. Opsi kualitas `hd` (bawaan, tanpa
-  watermark), `sd` (berkas lebih kecil), atau `wm` (versi asli dengan
-  watermark). Postingan foto dikirim utuh, maksimal 10 media per postingan.
-- `.ig` / `.instagram`: mengunduh video, foto, atau carousel Instagram dari
-  konten publik. Contoh: `.ig https://www.instagram.com/reel/xxxx`.
-  Postingan privat tidak dapat diunduh.
-- Resolver TikTok dan Instagram dipindahkan dari repositori naze-sosdown ke
-  `src/lib/sosdown/` dan diorkestrasi oleh `src/lib/naze-sosdown.js`; seluruh
-  proses berjalan mandiri di dalam bot dengan fetch bawaan Node.js 20 tanpa
-  server tambahan. Ukuran berkas dibatasi 64 MB per media.
-
-## Vektorisasi Alight Motion
-
-- `.amvector`: kirim atau balas gambar (PNG/JPEG/WebP, maks 15 MB) dengan
-  `.amvector`. Hasil berupa berkas XML yang dapat diimpor ke Alight Motion.
-- Argumen opsional: `isi` (bentuk terisi, bawaan), `garis` (line art dengan
-  goresan tipis), `kontur` (satu layer per garis tepi); `asli` untuk memakai
-  warna asli gambar per komponen/kontur; `gelap` (bawaan) atau `terang` untuk
-  memilih bagian gambar yang menjadi siluet; angka `1-99` untuk ambang
-  kecerahan; `#rrggbb` untuk warna global.
-- Contoh: `.amvector garis` untuk line art, `.amvector asli 60` untuk bentuk
-  terisi dengan warna asli pada ambang 60.
-- Pipeline vektorisasi dipindahkan dari repositori nazevector ke
-  `src/lib/vector/` (murni, tanpa DOM) dan diorkestrasi oleh
-  `src/lib/naze-vector.js`.
-
-## Game
-
-- `.pixelfishing` / `.pixelfish` / `.pfish`: game memancing bergaya pixel
-  dengan 20 jenis ikan, 5 tingkat kelangkaan, koleksi, toko, dan penyimpanan
-  progres. Game tampil langsung di chat sebagai pesan interaktif; jika versi
-  WhatsApp tidak mendukung pesan interaktif, bot memberi tahu lewat balasan
-  teks.
+- `.totxt`: balas pesan teks dengan `.totxt`, atau kirim `.totxt` diikuti teksnya;
+  bot mengirim `hasil.txt` yang isinya sama dengan teks sumber.
+- `.topdf`: mulai sesi, lalu kirim foto atau file TXT satu per satu, lalu kirim
+  nama output diawali titik (contoh `.tugasbahasainggris`). Bot mengirim PDF dengan
+  urutan halaman sesuai urutan kiriman.
+- `.tozip`: alurnya sama dengan `.topdf`, tetapi menerima foto, video, audio,
+  pesan suara, dan dokumen; isi asli setiap berkas dipertahankan.
+- `.toqr`: balas pesan teks dengan `.toqr`, atau kirim `.toqr` diikuti teksnya;
+  bot mengirim gambar kode QR. Maksimal 1000 karakter (atur di `config.files`);
+  media tidak dapat diubah menjadi kode QR.
+- `.statusfile` dan `.batal` berlaku selama sesi berjalan.
+- Batas bawaan: 20 berkas per sesi, 50 MB per berkas, 200 MB total, sesi berakhir
+  setelah 15 menit tidak aktif. Batas dapat diatur di blok `files` pada `config.js`.
 
 ## Sticker Studio
 
@@ -158,21 +140,67 @@ restart bot.
   tersimpan. Hanya penyimpan stiker atau owner bot yang dapat menghapus.
   Koleksi disimpan di `storage/stickers/` dan dibatasi `config.stickerStudio.store`.
 
-## Pengelolaan file
+## Game
 
-- `.totxt`: balas pesan teks dengan `.totxt`, atau kirim `.totxt` diikuti teksnya;
-  bot mengirim `hasil.txt` yang isinya sama dengan teks sumber.
-- `.topdf`: mulai sesi, lalu kirim foto atau file TXT satu per satu, lalu kirim
-  nama output diawali titik (contoh `.tugasbahasainggris`). Bot mengirim PDF dengan
-  urutan halaman sesuai urutan kiriman.
-- `.tozip`: alurnya sama dengan `.topdf`, tetapi menerima foto, video, audio,
-  pesan suara, dan dokumen; isi asli setiap berkas dipertahankan.
-- `.toqr`: balas pesan teks dengan `.toqr`, atau kirim `.toqr` diikuti teksnya;
-  bot mengirim gambar kode QR. Maksimal 1000 karakter (atur di `config.files`);
-  media tidak dapat diubah menjadi kode QR.
-- `.statusfile` dan `.batal` berlaku selama sesi berjalan.
-- Batas bawaan: 20 berkas per sesi, 50 MB per berkas, 200 MB total, sesi berakhir
-  setelah 15 menit tidak aktif. Batas dapat diatur di blok `files` pada `config.js`.
+- `.pixelfishing` / `.pixelfish` / `.pfish`: game memancing bergaya pixel
+  dengan 20 jenis ikan, 5 tingkat kelangkaan, koleksi, toko, dan penyimpanan
+  progres. Game tampil langsung di chat sebagai pesan interaktif; jika versi
+  WhatsApp tidak mendukung pesan interaktif, bot memberi tahu lewat balasan
+  teks.
+
+## Pencarian dan Downloader
+
+### Pencarian YouTube
+
+- `.ytsearch` / `.yts`: mencari video di YouTube. Contoh: `.yts musik lofi`.
+  Menampilkan 6 hasil berisi judul, durasi, jumlah tayangan, dan tautan.
+
+### Downloader YouTube
+
+- `.ytmp3`: mengunduh audio YouTube sebagai MP3. Menerima tautan atau kata
+  kunci, diikuti kualitas opsional `92`, `128` (bawaan), `256`, atau `320`.
+  Contoh: `.ytmp3 https://youtu.be/xxxx 128`.
+- `.ytmp4`: mengunduh video YouTube sebagai MP4. Kualitas opsional `144`,
+  `360` (bawaan), `480`, `720`, atau `1080`. Contoh:
+  `.ytmp4 https://youtu.be/xxxx 480`.
+- Kedua downloader YouTube membatasi ukuran berkas 64 MB agar aman dikirim
+  sebagai pesan WhatsApp; kata kunci otomatis diubah menjadi video pertama
+  hasil pencarian.
+
+### Downloader TikTok dan Instagram
+
+- `.tiktok` / `.tt`: mengunduh video atau foto TikTok. Contoh:
+  `.tiktok https://vt.tiktok.com/xxxx`. Opsi kualitas `hd` (bawaan, tanpa
+  watermark), `sd` (berkas lebih kecil), atau `wm` (versi asli dengan
+  watermark). Postingan foto dikirim utuh, maksimal 10 media per postingan.
+- `.ig` / `.instagram`: mengunduh video, foto, atau carousel Instagram dari
+  konten publik. Contoh: `.ig https://www.instagram.com/reel/xxxx`.
+  Postingan privat tidak dapat diunduh.
+- Resolver TikTok dan Instagram dipindahkan dari repositori naze-sosdown ke
+  `src/lib/sosdown/` dan diorkestrasi oleh `src/lib/naze-sosdown.js`; seluruh
+  proses berjalan mandiri di dalam bot dengan fetch bawaan Node.js 20 tanpa
+  server tambahan dan tanpa dependensi baru. Ukuran berkas dibatasi 64 MB per
+  media. Desain teknisnya dijabarkan pada `docs/SDD-SOSDOWN.md`.
+
+## Vektorisasi Alight Motion
+
+- `.amvector`: kirim atau balas gambar (PNG/JPEG/WebP, maks 15 MB) dengan
+  `.amvector`. Hasil berupa berkas XML yang dapat diimpor ke Alight Motion.
+- Argumen opsional: `isi` (bentuk terisi, bawaan), `garis` (line art dengan
+  goresan tipis), `kontur` (satu layer per garis tepi); `asli` untuk memakai
+  warna asli gambar per komponen/kontur; `gelap` (bawaan) atau `terang` untuk
+  memilih bagian gambar yang menjadi siluet; angka `1-99` untuk ambang
+  kecerahan; `#rrggbb` untuk warna global.
+- Contoh: `.amvector garis` untuk line art, `.amvector asli 60` untuk bentuk
+  terisi dengan warna asli pada ambang 60.
+- Pipeline vektorisasi dipindahkan dari repositori nazevector ke
+  `src/lib/vector/` (murni, tanpa DOM) dan diorkestrasi oleh
+  `src/lib/naze-vector.js`.
+
+## Dokumentasi teknis
+
+- `docs/STICKER-STUDIO.md` — desain dan cara kerja Sticker Studio.
+- `docs/SDD-SOSDOWN.md` — Software Design Document downloader TikTok dan Instagram.
 
 ## Pengujian
 
@@ -196,7 +224,7 @@ NAZE Bot
 ├── src/
 │   ├── connection.js   Koneksi dan pairing WhatsApp
 │   ├── handler.js      Penanganan pesan dan perintah
-│   ├── lib/            Library internal (plugin loader, serializer, PDF, sticker, dll.)
+│   ├── lib/            Library internal (plugin loader, serializer, PDF, sticker, sosdown, dll.)
 │   └── data/           Data game
 ├── database/       Data bot
 ├── storage/        Sesi WhatsApp dan berkas sementara (dibuat otomatis, jangan dibagikan)
