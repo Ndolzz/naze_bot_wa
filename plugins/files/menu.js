@@ -1,5 +1,5 @@
 import { getAllPlugins } from "../../src/lib/naze-plugins.js";
-import config from "../../config.js";
+import botConfig from "../../config.js";
 import { getBannerImage } from "../../src/lib/naze-banner.js";
 import {
   buildFullMenuText,
@@ -21,8 +21,10 @@ export const config = {
   cooldown: 5,
 };
 
+// Prefix bot dibaca melalui alias botConfig agar tidak bertabrakan
+// dengan export const config pada berkas ini (binding modul ES harus unik).
 function menuOptions() {
-  return { prefix: config?.command?.prefix || "." };
+  return { prefix: botConfig?.command?.prefix || "." };
 }
 
 // Tahap 2: .menu default interaktif (WhatsApp List Message) dengan fallback

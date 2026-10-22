@@ -277,6 +277,32 @@ test("setiap rowId dipetakan balik ke target navigasi yang sah", () => {
   }
 });
 
+test("buildCategoryView menghindari rowId fitur yang bertabrakan dengan kategori", () => {
+  const view = menu.buildCategoryView(FIXTURE_PLUGINS, "sticker");
+  const fitur = view.sections[0];
+  assert.deepEqual(
+    fitur.rows.map((r) => r.rowId),
+    [".menu s"]
+  );
+  assert.deepEqual(
+    fitur.rows.map((r) => r.title),
+    [".sticker"]
+  );
+  const target = menu.parseMenuTarget("s", FIXTURE_PLUGINS);
+  assert.equal(target.kind, "feature");
+  assert.equal(target.plugin, FIXTURE_PLUGINS[1]);
+});
+
+test("parseMenuTarget memprioritaskan kategori atas nama fitur yang sama", () => {
+  const kategori = menu.parseMenuTarget("sticker", FIXTURE_PLUGINS);
+  assert.equal(kategori.kind, "category");
+  assert.equal(kategori.category, "sticker");
+  assert.equal(kategori.plugin, undefined);
+  const fitur = menu.parseMenuTarget("stiker", FIXTURE_PLUGINS);
+  assert.equal(fitur.kind, "feature");
+  assert.equal(fitur.plugin, FIXTURE_PLUGINS[1]);
+});
+
 // ---------------------------------------------------------------------------
 // sendInteractiveView (naze-menu-send.js, murni dengan socket stub)
 // ---------------------------------------------------------------------------

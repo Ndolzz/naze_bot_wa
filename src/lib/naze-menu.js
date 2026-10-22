@@ -338,6 +338,23 @@ export function buildCategoryText(group, options = {}) {
 }
 
 /**
+ * Memilih target rowId fitur yang dipetakan balik ke fitur itu sendiri.
+ * Nama utama yang bertabrakan dengan kategori (misalnya fitur "sticker"
+ * pada kategori "sticker") digantikan alias pertama yang valid agar baris
+ * fitur tidak menavigasi balik ke kategori yang sama.
+ */
+function resolveFeatureRowTarget(item, plugins, options) {
+  const candidates = [item.primary].concat(item.aliases);
+  for (const candidate of candidates) {
+    const target = parseMenuTarget(candidate, plugins, options);
+    if (target && target.kind === "feature" && target.plugin === item.plugin) {
+      return candidate;
+    }
+  }
+  return item.primary;
+}
+
+/**
  * Tampilan kategori interaktif: daftar fitur dalam kategori plus navigasi.
  * @param {Object[]} plugins - Daftar plugin.
  * @param {string} category - Key kategori.
@@ -352,7 +369,11 @@ export function buildCategoryView(plugins, category, options = {}) {
   if (!group || group.plugins.length === 0) return null;
 
   const featureRows = group.plugins.map((item) =>
-    buildListRow(menuCommand(prefix, item.primary), prefix + item.primary, item.description)
+    buildListRow(
+      menuCommand(prefix, resolveFeatureRowTarget(item, plugins, options)),
+      prefix + item.primary,
+      item.description
+    )
   );
   const navigationRows = [
     buildListRow(menuCommand(prefix), "Menu Utama", "Kembali ke daftar kategori"),
