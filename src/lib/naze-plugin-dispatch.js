@@ -6,7 +6,7 @@
 // dispatchPlugin dengan pesan invokasi; seluruh gerbang yang sama tetap
 // berlaku sehingga tidak ada jalur eksekusi yang melewati pemeriksaan.
 
-import config from "../config.js";
+import config from "../../config.js";
 import { logger } from "./naze-logger.js";
 import { getAllPlugins } from "./naze-plugins.js";
 
