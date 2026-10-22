@@ -11,7 +11,7 @@
 // minimal "minMargin", klarifikasi saat ambigu atau media kurang, penolakan
 // multi langkah, dan penjelasan untuk fitur yang belum didukung.
 
-import config from "../config.js";
+import config from "../../config.js";
 import { getPlugin } from "./naze-plugins.js";
 import { dispatchPlugin, replySafe } from "./naze-plugin-dispatch.js";
 import {
