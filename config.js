@@ -126,9 +126,9 @@ const config = {
     antilink: "*Antilink* - @%user% mengirim link.\nPesan dihapus.",
     antilinkKick: "*Antilink* - @%user% dikeluarkan karena mengirim link grup WhatsApp.\nPesan dihapus.",
     antilinkGc: "*Antilink WA* - @%user% mengirim link grup WhatsApp.\nPesan dihapus.",
-    antilinkGcKick: "*Antilink WA* - @%user% dikeluarkan karena mengirim link grup WhatsApp.",
+    antilinkGcKick: "*Antilink WA* - @%user% dikeluarkan karena mengirim link grup WhatsApp.\nPesan dihapus.",
     antilinkAll: "*Antilink* - @%user% mengirim link.\nPesan dihapus.",
-    antilinkAllKick: "*Antilink* - @%user% dikeluarkan karena mengirim link.\nPesan dihapus.",
+    antilinkAllKick: "*Antilink* - @%user% mengirim link.\nPesan dihapus.",
     antitagsw: "*Anti Tag Status* - Tag status dari @%user% dihapus.",
     antiviewonce: "*View Once* - Dikirim oleh @%user%",
     antiremove: "*Anti Delete* - @%user% menghapus pesan:",
@@ -155,6 +155,16 @@ const config = {
     logMessage: true,
     dailyLimitReset: true,
     smartTriggers: false,
+  },
+
+  // Pengaturan Naze Intent Router: pengenalan permintaan berbahasa alami
+  // pada pesan tanpa prefix. Router hanya aktif jika
+  // features.smartTrigger dinyalakan.
+  intentRouter: {
+    threshold: 6, // skor minimal agar sebuah intent dianggap sah
+    minMargin: 2, // selisih skor minimal kandidat teratas dan kandidat kedua
+    maxTextLength: 500, // panjang teks pesan maksimal yang diproses router
+    clarifyTtlMs: 60000, // masa berlaku balasan klarifikasi (milidetik)
   },
 
   registration: {
@@ -531,4 +541,3 @@ export {
   isSelf,
   getOwnerName,
 };
-

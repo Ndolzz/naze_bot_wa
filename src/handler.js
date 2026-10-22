@@ -2,8 +2,10 @@ import config from "../config.js";
 import { serialize } from "./lib/naze-serialize.js";
 import { getDatabase } from "./lib/naze-database.js";
 import { logger, logMessage } from "./lib/naze-logger.js";
-import { getPlugin, getAllPlugins } from "./lib/naze-plugins.js";
+import { getPlugin } from "./lib/naze-plugins.js";
 import * as fileManager from "./lib/naze-file-manager.js";
+import { dispatchPlugin, replySafe } from "./lib/naze-plugin-dispatch.js";
+import { handleIntent } from "./lib/naze-intent-router.js";
 
 function logIncomingMessage(m) {
   const db = getDatabase();
@@ -33,28 +35,6 @@ function logIncomingMessage(m) {
   });
 }
 
-const commandCooldowns = new Map();
-
-function getCooldownRemaining(sender, commandName, cooldownSeconds) {
-  if (!cooldownSeconds || cooldownSeconds <= 0) return 0;
-  const key = sender + ":" + commandName;
-  const now = Date.now();
-  const last = commandCooldowns.get(key) || 0;
-  const remaining = Math.ceil((last + cooldownSeconds * 1000 - now) / 1000);
-  if (remaining > 0) return remaining;
-  commandCooldowns.set(key, now);
-  if (commandCooldowns.size > 2000) {
-    for (const [k, time] of commandCooldowns) {
-      if (now - time > 300000) commandCooldowns.delete(k);
-    }
-  }
-  return 0;
-}
-
-function replySafe(m, text) {
-  return m.reply(text).catch(() => null);
-}
-
 async function runDispatcher(m, sock) {
   if (m.isNewsletter) return;
   // Pesan dari akun bot sendiri dilewati, kecuali saat mode self aktif
@@ -77,6 +57,19 @@ async function runDispatcher(m, sock) {
 
   if (!m.isCommand) {
     fileManager.rememberTextMessage(m);
+    // Naze Intent Router hanya aktif saat fitur smartTrigger dinyalakan dan
+    // tidak ada sesi pengumpulan berkas aktif, agar pesan yang sedang
+    // menjadi bagian sesi tidak salah dikenali sebagai permintaan baru.
+    if (
+      config.features?.smartTriggers &&
+      !fileManager.getActiveSession(m.sender, m.chat)
+    ) {
+      try {
+        await handleIntent(m, sock);
+      } catch (error) {
+        logger.error("INTENT", error.message);
+      }
+    }
     return;
   }
 
@@ -95,62 +88,7 @@ async function runDispatcher(m, sock) {
     return;
   }
 
-  if (config.mode === "self" && !m.isOwner) return;
-
-  const pluginConfig = plugin.config || {};
-  if (pluginConfig.isEnabled === false) return;
-  if (pluginConfig.isOwner && !m.isOwner) {
-    await replySafe(m, config.messages?.ownerOnly || "Fitur ini khusus owner.");
-    return;
-  }
-  if (pluginConfig.isPremium && !m.isPremium) {
-    await replySafe(m, config.messages?.premiumOnly || "Fitur ini khusus pengguna premium.");
-    return;
-  }
-  if (pluginConfig.isGroup && !m.isGroup) {
-    await replySafe(m, config.messages?.groupOnly || "Fitur ini hanya untuk grup.");
-    return;
-  }
-  if (pluginConfig.isPrivate && !m.isPrivate) {
-    await replySafe(m, config.messages?.privateOnly || "Fitur ini hanya untuk chat pribadi.");
-    return;
-  }
-  if (pluginConfig.isAdmin && !m.isAdmin) {
-    await replySafe(m, config.messages?.adminOnly || "Fitur ini khusus admin grup.");
-    return;
-  }
-  if (pluginConfig.isBotAdmin && !m.isBotAdmin) {
-    await replySafe(m, config.messages?.botAdminOnly || "Bot harus menjadi admin grup.");
-    return;
-  }
-
-  const primaryName = Array.isArray(pluginConfig.name)
-    ? pluginConfig.name[0]
-    : pluginConfig.name;
-  const remaining = getCooldownRemaining(
-    m.sender,
-    String(primaryName || m.command),
-    Number(pluginConfig.cooldown ?? 3)
-  );
-  if (remaining > 0) {
-    const template =
-      config.messages?.cooldown ||
-      "Mohon tunggu %time% detik sebelum memakai perintah ini lagi.";
-    await replySafe(m, template.replace("%time%", String(remaining)));
-    return;
-  }
-
-  try {
-    await plugin.handler(m, {
-      sock,
-      store: sock?.store,
-      config,
-      plugins: getAllPlugins(),
-    });
-  } catch (error) {
-    logger.error("PLUGIN", m.command + ": " + error.message);
-    await replySafe(m, config.messages?.error || "Terjadi kesalahan. Silakan coba lagi nanti.");
-  }
+  await dispatchPlugin(m, sock, plugin);
 }
 
 async function messageHandler(msg, sock, options = {}) {
@@ -191,4 +129,3 @@ export {
   groupSettingsHandler,
   handleAntiRemoveFromUpsert,
 };
-
