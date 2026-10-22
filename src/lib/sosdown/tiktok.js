@@ -11,6 +11,13 @@ import { extractResponseCookie, rememberCookies } from "./media-cookies.js";
   Struktur ini tetap bisa berubah sewaktu-waktu. Titik yang paling rawan
   berubah ditandai dengan komentar PERAWATAN di bawah.
 
+  TikTok juga kerap menyajikan halaman pemeriksaan anti-bot untuk permintaan
+  tanpa cookie yang datang dari IP server. Karena itu, bila blok rehidrasi
+  tidak ditemukan sama sekali, resolver mengambil cookie sesi dari halaman
+  depan TikTok lalu mengulang permintaan halaman video satu kali dengan
+  cookie tersebut, serta memakai blok lama __SIGI_STATE__ sebagai jalur
+  cadangan.
+
   Dipindahkan dari repositori naze-sosdown (lib/resolvers/tiktok.ts) tanpa
   perubahan logika, hanya tanpa anotasi TypeScript.
 */
@@ -29,6 +36,8 @@ const BROWSER_HEADERS = {
 };
 
 const SHORT_LINK_HOST_PATTERN = /(^|\.)(vt|vm)\.tiktok\.com$/i;
+
+const TIKTOK_HOME_URL = "https://www.tiktok.com/";
 
 async function expandShortLink(rawUrl) {
   const parsed = new URL(rawUrl);
@@ -55,9 +64,11 @@ function extractItemId(canonicalUrl) {
   return null;
 }
 
-async function fetchPageHtml(canonicalUrl) {
+async function fetchPageHtml(canonicalUrl, cookie) {
+  const headers = cookie ? { ...BROWSER_HEADERS, Cookie: cookie } : BROWSER_HEADERS;
+
   const response = await fetch(canonicalUrl, {
-    headers: BROWSER_HEADERS,
+    headers,
     redirect: "follow",
   });
 
@@ -65,10 +76,34 @@ async function fetchPageHtml(canonicalUrl) {
     throw new Error(`page request failed with status ${response.status}`);
   }
 
-  const cookie = extractResponseCookie(response);
+  const extractedCookie = extractResponseCookie(response);
   const html = await response.text();
 
-  return { html, cookie };
+  return { html, cookie: extractedCookie ?? cookie ?? null };
+}
+
+// Cookie sesi dari halaman depan TikTok. Halaman video yang sebelumnya
+// menyajikan halaman pemeriksaan anti-bot biasanya bisa diambil setelah
+// permintaan ulang membawa cookie ini.
+async function fetchSessionCookie() {
+  try {
+    const response = await fetch(TIKTOK_HOME_URL, {
+      headers: BROWSER_HEADERS,
+      redirect: "follow",
+    });
+
+    const cookie = extractResponseCookie(response);
+
+    try {
+      await response.text();
+    } catch {
+      // Isi halaman depan tidak dipakai; kegagalan membacanya diabaikan.
+    }
+
+    return cookie;
+  } catch {
+    return null;
+  }
 }
 
 // PERAWATAN: blok data rehidrasi ini dibaca berdasarkan id script-nya.
@@ -92,6 +127,33 @@ function extractItemStruct(universalData) {
   // saat dokumen ini ditulis.
   const detail = universalData?.__DEFAULT_SCOPE__?.["webapp.video-detail"];
   return detail?.itemInfo?.itemStruct ?? null;
+}
+
+function extractDetailStatusCode(universalData) {
+  const statusCode =
+    universalData?.__DEFAULT_SCOPE__?.["webapp.video-detail"]?.statusCode;
+  return typeof statusCode === "number" && statusCode !== 0 ? statusCode : null;
+}
+
+// PERAWATAN: sebelum blok rehidrasi, TikTok menyisipkan blok
+// id="__SIGI_STATE__" dengan struktur ItemModule. Blok ini dipakai sebagai
+// jalur cadangan bila blok rehidrasi tidak ada atau tidak memuat itemStruct.
+function parseSigiState(html) {
+  const pattern = /<script id="__SIGI_STATE__"[^>]*>([\s\S]*?)<\/script>/;
+  const match = html.match(pattern);
+  if (!match) return null;
+
+  try {
+    return JSON.parse(match[1]);
+  } catch {
+    return null;
+  }
+}
+
+function extractItemStructFromSigi(html, itemId) {
+  if (!itemId) return null;
+  const sigiState = parseSigiState(html);
+  return sigiState?.ItemModule?.[itemId] ?? null;
 }
 
 function buildVideoItems(itemStruct) {
@@ -207,7 +269,7 @@ export async function resolveTikTok(rawUrl) {
   let html;
   let sourceCookie;
   try {
-    const page = await fetchPageHtml(canonicalUrl);
+    const page = await fetchPageHtml(canonicalUrl, null);
     html = page.html;
     sourceCookie = page.cookie;
   } catch {
@@ -220,15 +282,60 @@ export async function resolveTikTok(rawUrl) {
     };
   }
 
-  const universalData = parseRehydrationData(html);
-  const itemStruct = universalData ? extractItemStruct(universalData) : null;
+  let universalData = parseRehydrationData(html);
+  let itemStruct = universalData ? extractItemStruct(universalData) : null;
 
   if (!itemStruct) {
+    itemStruct = extractItemStructFromSigi(html, itemId);
+  }
+
+  // Halaman tanpa blok rehidrasi sama sekali biasanya halaman pemeriksaan
+  // anti-bot untuk permintaan tanpa cookie. Ambil cookie sesi dari halaman
+  // depan TikTok, lalu ulangi permintaan halaman video satu kali.
+  if (!itemStruct && !universalData) {
+    const warmCookie = sourceCookie ?? (await fetchSessionCookie());
+    if (warmCookie) {
+      try {
+        const retry = await fetchPageHtml(canonicalUrl, warmCookie);
+        const retryData = parseRehydrationData(retry.html);
+        const retryStruct =
+          (retryData ? extractItemStruct(retryData) : null) ??
+          extractItemStructFromSigi(retry.html, itemId);
+
+        if (retryStruct) {
+          html = retry.html;
+          sourceCookie = retry.cookie ?? warmCookie;
+          universalData = retryData;
+          itemStruct = retryStruct;
+        }
+      } catch {
+        // Diabaikan; pesan galat akhir dibentuk dari data yang sudah ada.
+      }
+    }
+  }
+
+  if (!itemStruct) {
+    if (!universalData && !parseSigiState(html)) {
+      return {
+        ok: false,
+        error: {
+          code: "bot_blocked",
+          message:
+            "TikTok menolak permintaan dari server ini. Tunggu beberapa saat lalu coba lagi, atau gunakan tautan lain.",
+        },
+      };
+    }
+
+    const statusCode = extractDetailStatusCode(universalData);
     return {
       ok: false,
       error: {
         code: "content_unavailable",
-        message: "Konten TikTok tidak ditemukan atau sudah tidak tersedia.",
+        message: statusCode
+          ? "Konten TikTok tidak dapat diambil (kode " +
+            statusCode +
+            "). Postingan mungkin privat atau sudah dihapus."
+          : "Konten TikTok tidak ditemukan atau sudah tidak tersedia.",
       },
     };
   }

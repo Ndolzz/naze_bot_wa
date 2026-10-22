@@ -758,8 +758,8 @@ function showCatch(o){
  if(o.unlocked.length)h+='<div style="color:#ffd447;margin-top:2px">Spot baru: '+o.unlocked.join(', ')+'</div>';
  h+='<button id="mok" class="btn ac" style="width:100%;margin-top:10px">LANJUT</button>';
  openModal(h,col);
- drawBig('mc',sp,o.gold?'g':'n');
- $('mok').onclick=function(){sfx('ui');closeModal()};
+ var __ok=$('mok');if(__ok)__ok.onclick=function(){sfx('ui');closeModal()};
+ try{drawBig('mc',sp,o.gold?'g':'n')}catch(e){}
 }
 
 /* ===== tabs / views ===== */
@@ -800,7 +800,7 @@ function renderCol(){
  for(var i=0;i<cards.length;i++){
   (function(el){
    var s=BY[el.getAttribute('data-id')];
-   miniCanvas(el,s,S.col[s.id]?'n':'s');
+   try{miniCanvas(el,s,S.col[s.id]?'n':'s')}catch(e){}
    el.onclick=function(){sfx('ui');showSpecies(s.id)};
   })(cards[i]);
  }
@@ -832,8 +832,8 @@ function showSpecies(id){
  }
  h+='<button id="mok" class="btn ac" style="width:100%;margin-top:10px">TUTUP</button>';
  openModal(h,col);
- drawBig('mc',s,c?'n':'s');
- $('mok').onclick=function(){sfx('ui');closeModal()};
+ var __ok=$('mok');if(__ok)__ok.onclick=function(){sfx('ui');closeModal()};
+ try{drawBig('mc',s,c?'n':'s')}catch(e){}
 }
 function bagSorted(){
  var arr=S.bag.map(function(it,i){return {it:it,i:i,v:Core.sellValue(BY[it.i],it.w,it.g)}});
@@ -983,7 +983,7 @@ $('bL').onclick=function(){cycleBait(-1)};$('bR').onclick=function(){cycleBait(1
  var tb=document.querySelectorAll('#tabs button');
  for(var i=0;i<tb.length;i++)(function(el){el.onclick=function(){showView(el.getAttribute('data-v'))}})(tb[i]);
 })();
-$('modal').addEventListener('pointerdown',function(e){if(e.target===$('modal')&&G.phase!=='result')closeModal()});
+$('modal').addEventListener('pointerdown',function(e){if(e.target===$('modal'))closeModal()});
 
 /* ===== loop ===== */
 function update(dt){
@@ -1023,9 +1023,9 @@ var last=0,hudT=0;
 function frame(now){
  var dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
  if(!document.hidden){
-  update(dt);
-  if(curView==='fish')drawScene(now);
-  hudT+=dt;if(hudT>1){hudT=0;updHud()}
+  try{update(dt)}catch(e){}
+  if(curView==='fish'){try{drawScene(now)}catch(e){}}
+  hudT+=dt;if(hudT>1){hudT=0;try{updHud()}catch(e){}}
  }
  requestAnimationFrame(frame);
 }

@@ -9,6 +9,11 @@
   Jika resolver ini mulai gagal secara luas, langkah pertama adalah
   memeriksa ulang bentuk HTML halaman embed Instagram saat ini.
 
+  Bila blok contextJSON tidak ada (Instagram mengubah halaman embed atau
+  membatasi akses untuk server ini), resolver mencoba jalur cadangan:
+  URL media CDN (fbcdn/cdninstagram) yang masih tercetak pada skrip halaman
+  embed serta tag meta og:video dan og:image.
+
   Dipindahkan dari repositori naze-sosdown (lib/resolvers/instagram.ts)
   tanpa perubahan logika, hanya tanpa anotasi TypeScript.
 */
@@ -22,6 +27,9 @@ const SHORTCODE_PATTERN = /\/(p|reel|tv)\/([A-Za-z0-9_-]+)/;
 // "contextJSON" pada halaman embed. Pola ini yang paling mungkin perlu
 // disesuaikan lebih dulu bila resolver berhenti bekerja.
 const CONTEXT_JSON_PATTERN = /"contextJSON":"((?:\\.|[^"\\])*)"/;
+
+const CDN_HOST_PATTERN = /(^|\.)(fbcdn\.net|cdninstagram\.com)$/i;
+const CDN_MEDIA_PATH_PATTERN = /\.(mp4|jpe?g|png|webp)$/i;
 
 function extractShortcode(rawUrl) {
   const match = rawUrl.match(SHORTCODE_PATTERN);
@@ -70,6 +78,106 @@ function looksUnavailable(html) {
     html.includes("Sorry, this page isn't available") ||
     html.includes("halaman ini tidak tersedia")
   );
+}
+
+// Membaca isi tag meta Open Graph dengan dua kemungkinan urutan atribut:
+// property sebelum content, atau content sebelum property.
+function extractMetaContent(html, property) {
+  const propertyFirst = html.match(
+    new RegExp(
+      '<meta[^>]+property=["\']' + property + '["\'][^>]+content=["\']([^"\']*)["\']',
+    ),
+  );
+  if (propertyFirst) return propertyFirst[1];
+
+  const contentFirst = html.match(
+    new RegExp(
+      '<meta[^>]+content=["\']([^"\']*)["\'][^>]+property=["\']' + property + '["\']',
+    ),
+  );
+  if (contentFirst) return contentFirst[1];
+
+  return null;
+}
+
+// URL pada skrip halaman embed sering muncul dalam bentuk ter-escape
+// (\u0026 untuk &, \/ untuk /) atau memakai entitas HTML (&amp;).
+// Seluruh halaman dinormalkan lebih dulu sebelum dipindai.
+function collectCdnMediaUrls(html) {
+  const decoded = html
+    .replace(/\\u0026/g, "&")
+    .replace(/\\\//g, "/")
+    .replace(/&amp;/g, "&");
+
+  const found = [];
+  const seen = new Set();
+  const pattern = /https?:\/\/[^\s"'<>\\]+/g;
+
+  let match;
+  while ((match = pattern.exec(decoded)) !== null) {
+    let parsed;
+    try {
+      parsed = new URL(match[0]);
+    } catch {
+      continue;
+    }
+
+    if (!CDN_HOST_PATTERN.test(parsed.hostname)) continue;
+    if (!CDN_MEDIA_PATH_PATTERN.test(parsed.pathname)) continue;
+    if (seen.has(parsed.href)) continue;
+
+    seen.add(parsed.href);
+    found.push(parsed.href);
+  }
+
+  return found;
+}
+
+function mimeFromPath(path) {
+  if (/\.mp4$/i.test(path)) return "video/mp4";
+  if (/\.png$/i.test(path)) return "image/png";
+  if (/\.webp$/i.test(path)) return "image/webp";
+  return "image/jpeg";
+}
+
+// Jalur cadangan bila contextJSON tidak ada: item media dibangun dari URL
+// CDN yang dipindai dari halaman embed, ditambah tag meta og:video/og:image.
+// Video diletakkan lebih dulu agar tipe postingan terdeteksi dengan benar.
+function buildFallbackItems(html) {
+  const candidates = collectCdnMediaUrls(html);
+  const ogVideo = extractMetaContent(html, "og:video");
+  const ogImage = extractMetaContent(html, "og:image");
+
+  const items = [];
+  const seen = new Set();
+
+  const pushItem = (url, mimeType) => {
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    items.push({
+      url,
+      quality: "original",
+      label: null,
+      hasWatermark: false,
+      mimeType,
+      thumbnailUrl: mimeType === "video/mp4" ? (ogImage ?? url) : url,
+    });
+  };
+
+  if (ogVideo) pushItem(ogVideo, "video/mp4");
+
+  const videoCandidates = candidates.filter((url) => /\.mp4$/i.test(new URL(url).pathname));
+  const imageCandidates = candidates.filter((url) => !/\.mp4$/i.test(new URL(url).pathname));
+
+  for (const url of videoCandidates) {
+    pushItem(url, "video/mp4");
+  }
+  for (const url of imageCandidates) {
+    pushItem(url, mimeFromPath(new URL(url).pathname));
+  }
+  if (ogImage) pushItem(ogImage, "image/jpeg");
+
+  return items;
 }
 
 function buildItemsFromNode(node) {
@@ -152,11 +260,32 @@ export async function resolveInstagram(rawUrl) {
   const media = context?.shortcode_media;
 
   if (!media) {
+    // contextJSON bisa hilang bila Instagram mengubah halaman embed atau
+    // membatasi akses untuk server ini. Sebelum menyerah, coba jalur
+    // cadangan berupa URL CDN dan tag meta pada halaman embed.
+    const fallbackItems = buildFallbackItems(html);
+    if (fallbackItems.length > 0) {
+      return {
+        ok: true,
+        data: {
+          platform: "instagram",
+          type: fallbackItems.some((item) => item.mimeType === "video/mp4")
+            ? "video"
+            : "photo",
+          items: fallbackItems,
+          author: null,
+          caption: extractMetaContent(html, "og:title") ?? null,
+          sourceUrl,
+        },
+      };
+    }
+
     return {
       ok: false,
       error: {
         code: "parse_failed",
-        message: "Data media tidak dapat diurai dari halaman Instagram.",
+        message:
+          "Data media tidak dapat diurai dari halaman Instagram. Postingan mungkin membatasi akses untuk server ini atau struktur halaman sudah berubah.",
       },
     };
   }
