@@ -146,7 +146,7 @@ if (!router) {
   config.features.smartTriggers = true;
 
   try {
-    console.log("Tolor ukur Naze Intent Router");
+    console.log("Tolok ukur Naze Intent Router");
     console.log("  Node     : " + process.version);
     console.log("  Platform : " + os.platform() + " " + os.arch());
     const cpu = os.cpus()[0];
@@ -199,7 +199,7 @@ if (!router) {
       {
         body: "unduh audio dari video youtube ini",
         extra: { quoted: { body: "cek https://youtu.be/abc123 ya" } },
-    },
+      },
       { body: "kompres video ini", extra: { isVideo: true } },
       { body: "bikin brat", extra: null },
     ];
@@ -227,7 +227,7 @@ if (!router) {
 
     printReport(
       "handleIntent - jalur penuh (" + scenarios.length + " pesan per putaran)",
-        handleSamples,
+      handleSamples,
     );
   } finally {
     config.features.smartTriggers = originalSmartTriggers;

@@ -29,7 +29,7 @@ Blok `intentRouter` pada `config.js`:
 
 | Pengaturan | Nilai bawaan | Keterangan |
 | --- | --- | --- |
-| threshold | 6 | Skor minimal agar sebuah intent diuangap sah |
+| threshold | 6 | Skor minimal agar sebuah intent dianggap sah |
 | minMargin | 2 | Selisih skor minimal antara kandidat teratas dan kandidat kedua |
 | maxTextLength | 500 | Panjang teks pesan maksimal yang diproses router |
 | clarifyTtlMs | 60000 | Masa berlaku balasan klarifikasi dalam milidetik |
@@ -64,7 +64,7 @@ yang meleset, matikan kembali `smartTriggers` dan laporkan kasusnya.
 | 6 | Tulis "bikin brat semangat pagi" | Stiker brat dibuat |
 | 7 | Tulis "brat vid jangan menyerah" | Stiker brat animasi dibuat |
 | 8 | Balas pesan teks dengan "ubah teks ini jadi file txt" | Berkas TXT dikirim |
-| 9 | Kirim gambar lalu tulis "bikin gambar ini lebih kecil dan tajam" | Bot meminta klarifikasi; balas "kompres" lalt gambar terkompres |
+| 9 | Kirim gambar lalu tulis "bikin gambar ini lebih kecil dan tajam" | Bot meminta klarifikasi; balas "kompres" lalu gambar terkompres |
 | 10 | Kirim video lalu tulis "kompres video ini" | Penjelasan bahwa kompres video belum tersedia |
 | 11 | Tulis "ubah gambar ini jadi stiker lalu jadi pdf" | Ditolak dengan penjelasan multi-langkah |
 | 12 | Tulis "halo", "lagunya enak banget", atau kirim dokumen dengan pesan "ini pdf tugas dari dosen" | Tidak ada balasan atau eksekusi |
