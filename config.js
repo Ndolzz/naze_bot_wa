@@ -157,6 +157,16 @@ const config = {
     smartTriggers: false,
   },
 
+  // Pengaturan Naze Intent Router: pengenalan permintaan berbahasa alami
+  // pada pesan tanpa prefix. Router hanya aktif jika
+  // features.smartTrigger dinyalakan.
+  intentRouter: {
+    threshold: 6, // skor minimal agar sebuah intent dianggap sah
+    minMargin: 2, // selisih skor minimal kandidat teratas dan kandidat kedua
+    maxTextLength: 500, // panjang teks pesan maksimal yang diproses router
+    clarifyTtlMs: 60000, // masa berlaku balasan klarifikasi (milidetik)
+  },
+
   registration: {
     enabled: false, // Jika true, pengguna harus mendaftar sebelum memakai bot
     rewards: {
@@ -531,4 +541,3 @@ export {
   isSelf,
   getOwnerName,
 };
-
